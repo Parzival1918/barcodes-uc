@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "barcodes-uc"
+version = "0.1.0"
+description = ""
+authors = ["Pedro Juan Royo <pedro.juan.royo@gmail.com>"]
+readme = "README.md"
+packages = [{include = "barcodes_uc"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
