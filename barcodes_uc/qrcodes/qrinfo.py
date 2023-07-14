@@ -13,6 +13,12 @@ FILE_PATH = Path(__file__).parent / "../../data"
 #From ../../data import the csv files with the qr code information
 __CAPABILITIES = pd.read_csv(FILE_PATH / 'capabilities.csv')
 __ERR_CORR = pd.read_csv(FILE_PATH / 'error_correction_table.csv')
+__GF = pd.read_csv(FILE_PATH / 'GF256.csv')
+
+#List with the GF256 values, idx is exponent of 2^n
+GF256 = []
+for index, row in __GF.iterrows():
+    GF256.append(row['Value'])
 
 #Dict with max number of characters for each version and error correction level from CAPABILITIES
 MAX_CHARACTERS = {}
@@ -35,9 +41,39 @@ for version in pd.unique(__ERR_CORR['Version']):
 for index, row in __ERR_CORR.iterrows():
     DATA_CODEWORDS[row['Version']][row['Error Correction Level']] = row['Number of Data Codewords']
 
+#Error correction code words per block
+ERR_CORR_CODEWORDS_BLOCK = {}
+for version in pd.unique(__ERR_CORR['Version']):
+    ERR_CORR_CODEWORDS_BLOCK[version] = {}
+    for error in pd.unique(__ERR_CORR['Error Correction Level']):
+        ERR_CORR_CODEWORDS_BLOCK[version][error] = 0
+
+for index, row in __ERR_CORR.iterrows():
+    ERR_CORR_CODEWORDS_BLOCK[row['Version']][row['Error Correction Level']] = row['Error Correction Codewords Per Block']
+
+#Groups, blocks per group and data code words per block
+GROUPS = {}
+for version in pd.unique(__ERR_CORR['Version']):
+    GROUPS[version] = {}
+    for error in pd.unique(__ERR_CORR['Error Correction Level']):
+        GROUPS[version][error] = 0
+
+for index, row in __ERR_CORR.iterrows():
+    GROUPS[row['Version']][row['Error Correction Level']] = {
+        'GroupOne': {
+            'Blocks': row['Group One Number of Blocks'],
+            'CodewordsPerBlock': row['Group One Number of Data Codewords Per Block']
+        },
+        'GroupTwo': {
+            'Blocks': row['Group Two Number of Blocks'],
+            'CodewordsPerBlock': row['Group Two Number of Data Codewords Per Block']
+        }
+    }
+
 #Delete the CAPABILITIES and ERR_CORR dataframes
 del __CAPABILITIES
 del __ERR_CORR
+del __GF
 
 #Padding bytes
 PAD_BYTES = ['11101100', '00010001']
@@ -243,16 +279,21 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
             'MultipleOf8': '',
             'PadBytes': []
         },
-        'TotalLength': 0
+        'TotalLength': 0,
+        'dataBytes': [],
+        'ErrorCorrection': []
     }
     totalLength = 0
+    totalBits = ''
 
     count_indicator = qr_count_indicator(version, QREncoding.alphanumeric, data)
 
-    blocks['Mode'] = QREncoding.alphanumeric
+    blocks['Mode'] = QREncoding.alphanumeric.value
     blocks['CharacterCount'] = count_indicator
     totalLength += len(count_indicator)
     totalLength += len(QREncoding.alphanumeric.value)
+    totalBits += QREncoding.alphanumeric.value
+    totalBits += count_indicator
 
     for i in range(0, len(data), 2):
         if i + 2 <= len(data):
@@ -267,11 +308,12 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
             blocks['Data'].append(formatted)
 
         totalLength += len(formatted)
+        totalBits += formatted
 
     dataBits = DATA_CODEWORDS[version][correction]*8
     remainderLength = dataBits - totalLength
-    print(remainderLength)
-    print(dataBits)
+    # print(remainderLength)
+    # print(dataBits)
 
     #Extra padding
 
@@ -280,14 +322,18 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
         blocks['ExtraPadding']['TerminatorZeros'] = '0'*4
         remainderLength -= 4
         totalLength += 4
+        totalBits += '0'*4
     else:
         blocks['ExtraPadding']['TerminatorZeros'] = '0'*remainderLength
         remainderLength = 0
         totalLength += remainderLength
+        totalBits += '0'*remainderLength
 
     #Add 0 until the length is a multiple of 8
     if remainderLength != 0 and remainderLength%8 != 0:
-        blocks['ExtraPadding']['PadBytes'].append('0'*(remainderLength%8))
+        blocks['ExtraPadding']['MultipleOf8'] = '0'*(remainderLength%8)
+        totalBits += '0'*(remainderLength%8)
+
         totalLength += remainderLength%8
         remainderLength -= remainderLength%8
 
@@ -297,10 +343,25 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
         while remainderLength >= 8:
             blocks['ExtraPadding']['PadBytes'].append(PAD_BYTES[padBytePos%2])
             remainderLength -= 8
-            padBytePos += 1
             totalLength += 8
+            totalBits += PAD_BYTES[padBytePos%2]
+            
+            padBytePos += 1
 
     blocks['TotalLength'] = totalLength
+
+    #Split the data in bytes
+    for i in range(0, len(totalBits), 8):
+        blocks['dataBytes'].append(totalBits[i:i+8])
+
+    #Error correction using Reed-Solomon algorithm
+    blockInfo = GROUPS[version][correction]
+
+    #Message polynomial
+    messageP = []
+
+
+    #Generator polynomial
 
     return blocks
 

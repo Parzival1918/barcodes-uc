@@ -1,4 +1,4 @@
-Version,Error Correction Level,Number of Data Codewords,Error Correction Codewords Per Block,Group One Number of Blocks,Group One Number of Data Codewords Per Block,Group Two Number of Blocks,Group Two Numbeer of Data Codewords Per Block
+Version,Error Correction Level,Number of Data Codewords,Error Correction Codewords Per Block,Group One Number of Blocks,Group One Number of Data Codewords Per Block,Group Two Number of Blocks,Group Two Number of Data Codewords Per Block
 1,L,19,7,1,19,,
 1,M,16,10,1,16,,
 1,Q,13,13,1,13,,
