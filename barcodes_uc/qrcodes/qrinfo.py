@@ -8,6 +8,7 @@ import pandas as pd
 from pathlib import Path
 from enum import Enum
 import numpy as np
+from copy import deepcopy
 
 FILE_PATH = Path(__file__).parent / "../../data"
 
@@ -240,6 +241,69 @@ def find_indices(list_to_check, item_to_find):
             indices.append(idx)
     return indices
 
+def multiply_polynomials(poly1Vals: list, poly1Exponents: list, poly2Vals: list, poly2Exponents: list) -> list:
+    #1 - Convert the polynomials to GF notation
+    poly1GF = []
+    poly2GF = []
+    for i in range(0, len(poly1Vals)):
+        if poly1Vals[i] > 255:
+            poly1GF.append(GF256.index(poly1Vals[i]%255))
+        else:
+            try:
+                poly1GF.append(GF256.index(poly1Vals[i]))
+            except:
+                poly1GF.append(poly1Vals[i])
+
+    for i in range(0, len(poly2Vals)):
+        if poly2Vals[i] > 255:
+            poly2GF.append(GF256.index(poly2Vals[i]%255))
+        else:
+            try:
+                poly2GF.append(GF256.index(poly2Vals[i]))
+            except:
+                poly2GF.append(poly2Vals[i])
+
+    #2 - Multiply the polynomials
+    multResult = []
+    multExpX = []
+    for i in range(0, len(poly1GF)):
+        for j in range(0, len(poly2GF)):
+            multResult.append((poly1GF[i] + poly2GF[j])%255)
+            multExpX.append(poly1Exponents[i] + poly2Exponents[j])
+
+    # print(f"Mult GF terms: {multResult}")
+    # print(f"Exponents: {multExpX}")
+
+    #3 - Convert the result to integer notation
+    intResult = []
+    for i in multResult:
+        intResult.append(GF256[i])
+
+    #4 - Add the terms with the same exponent
+    sumResult = []
+    sumExpX = []
+    for i in range(0, max(multExpX)+1):
+        Idxs = find_indices(multExpX, i)
+
+        #Skip if there list is empty
+        if not Idxs:
+            continue
+
+        values = []
+        for j in Idxs:
+            values.append(intResult[j])
+
+        if len(values) == 1:
+            sumExp = values[0]
+        else:
+            sumExp = values[0] ^ values[1]
+
+        sumResult.append(sumExp)
+        sumExpX.append(i)
+        # print(f"{i}: {Idxs}")
+
+    return sumResult, sumExpX
+
 #Function to generate the generator polynomial
 def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels) -> list:
     n = ERR_CORR_CODEWORDS_BLOCK[version][correction]
@@ -255,7 +319,7 @@ def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels
             else:
                 prevGF[i] = GF256.index(prevResult[i])
 
-        print(f"PrevGF: {prevGF}. TermGF: {termGF}")
+        # print(f"PrevGF: {prevGF}. TermGF: {termGF}")
 
         #Multiply the terms
         result = []
@@ -271,22 +335,22 @@ def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels
 
             pos0 += 1
 
-        print(f"Mult GF terms: {result}")
-        print(f"Exponents: {expX}")
+        # print(f"Mult GF terms: {result}")
+        # print(f"Exponents: {expX}")
 
         #Convert result to polynomial notation
         resultPoly = []
         for i in result:
             resultPoly.append(GF256[i])
 
-        print(f"Length of result: {len(result)}")
-        print(resultPoly)
+        # print(f"Length of result: {len(result)}")
+        # print(resultPoly)
 
         #Add all the terms with the same exponent
         sumTerms = []
         for i in range(0, len(resultPoly)):
             Idxs = find_indices(expX, i)
-            print(f"{i}: {Idxs}")
+            # print(f"{i}: {Idxs}")
 
             #Skip if there list is empty
             if not Idxs:
@@ -303,15 +367,117 @@ def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels
 
             sumTerms.append(sumExp)
 
-        print(f"Sum terms: {sumTerms}")
+        # print(f"Sum terms: {sumTerms}")
 
         prevResult = sumTerms
 
     return prevResult
 
 #Divide the polynomial by the generator polynomial
-def divide_polynomials(message: list, generator: list):
-    pass
+def divide_polynomials(message: list, generator: list, version: QRVersion, correction: QRErrorCorrectionLevels) -> list:
+    divisions = []
+    for messageDataBlock in message:
+        dataCodewords = len(messageDataBlock)
+
+        exponentsMessage = list(range(0, len(messageDataBlock)))
+        exponentsGenerator = list(range(0, len(generator)))
+
+        errCorrCodewords = ERR_CORR_CODEWORDS_BLOCK[version][correction]
+        leadingExponentMessage = len(messageDataBlock) - 1
+
+        # print(f"Message: {messageDataBlock}\nExponents: {exponentsMessage}")
+        # print(f"Generator: {generator}\nExponents: {exponentsGenerator}")
+
+        #Mult message poly by x^errCorrCodewords
+        messageDataBlock, exponentsMessage = multiply_polynomials(messageDataBlock, exponentsMessage, [1], [errCorrCodewords])
+
+        #Mult generator poly by x^leadingExponentMessage
+        generator, exponentsGenerator = multiply_polynomials(generator, exponentsGenerator, [1], [leadingExponentMessage])
+
+        print(f"Message: [{len(messageDataBlock)}] {messageDataBlock}\nExponents: {exponentsMessage}")
+        print(f"Generator: [{len(generator)}] {generator}\nExponents: {exponentsGenerator}")
+
+        # pos = 0
+        # prevResult = messageDataBlock
+        # prevExponents = exponentsMessage
+        # for _ in range(dataCodewords):
+        #     #Mult generator by lead term of message poly
+        #     if pos == 0:
+        #         leadTermMessage = messageDataBlock[-1]
+        #     else:
+        #         leadTermMessage = generator[-1]
+        #     print(f"Lead term message: {leadTermMessage}")
+
+        #     generator, exponentsGenerator = multiply_polynomials(generator, exponentsGenerator, [leadTermMessage], [0])
+
+        #     print(f"After mult with lead term\n  Generator: [{len(generator)}] {generator}\n  Exponents: {exponentsGenerator}")
+
+        #     #XOR the result with the message poly and discard the leading 0 term
+        #     for i in range(0, len(exponentsGenerator)):
+        #         if exponentsGenerator[i] in prevExponents:
+        #             idx = prevExponents.index(exponentsGenerator[i])
+        #             print(f"Generator: {generator[i]} XOR {prevResult[idx]}")
+        #             generator[i] = generator[i] ^ prevResult[idx]
+        #         else:
+        #             print(f"Generator: {generator[i]} XOR 0")
+        #             generator[i] = generator[i] ^ 0
+
+        #     print(f"Generator: [{len(generator)}] {generator}\nExponents: [{len(exponentsGenerator)}] {exponentsGenerator}")
+            
+        #     #Remove leading 0 term
+        #     generator.pop(-1)
+        #     exponentsGenerator.pop(-1)
+        #     prevResult = generator
+        #     prevExponents = exponentsGenerator
+        #     pos += 1
+
+        prevResult = messageDataBlock
+        prevExponents = exponentsMessage
+        print(f"Prev: [{len(messageDataBlock)}] {messageDataBlock}\nExponents: {exponentsMessage}")
+        for i in range(dataCodewords):
+            print(f"Division {i+1}")
+            #1 - Multiply the generator polynomial by the leading term of the message polynomial
+            # print(prevResult)
+            leadTerm = prevResult[-1]
+            generator, exponentsGenerator = multiply_polynomials(generator, exponentsGenerator, [leadTerm], [0])
+            print(f"  Generator: [{len(generator)}] {generator}\n  Exponents: {exponentsGenerator}")
+
+            #2 - XOR the result with the message polynomial
+            XORResult = []
+            XORExponents = []
+            if len(generator) > len(prevResult):
+                for i in range(0, len(exponentsGenerator)):
+                    if exponentsGenerator[i] in prevExponents:
+                        idx = prevExponents.index(exponentsGenerator[i])
+                        XORResult.append(generator[i] ^ prevResult[idx])
+                        XORExponents.append(exponentsGenerator[i])
+                    else:
+                        XORResult.append(generator[i] ^ 0)
+                        XORExponents.append(exponentsGenerator[i])
+            else:
+                for i in range(0, len(prevExponents)):
+                    if prevExponents[i] in exponentsGenerator:
+                        idx = exponentsGenerator.index(prevExponents[i])
+                        XORResult.append(generator[idx] ^ prevResult[i])
+                        XORExponents.append(prevExponents[i])
+                    else:
+                        XORResult.append(prevResult[i] ^ 0)
+                        XORExponents.append(prevExponents[i])
+
+            print(" After XOR")
+            print(f"  Generator: [{len(XORResult)}] {XORResult}\n  Exponents: {XORExponents}")
+
+            #3 - Remove the leading 0 term
+            XORResult.pop(-1)
+            XORExponents.pop(-1)
+            prevResult = XORResult
+            prevExponents = XORExponents
+
+
+        divisions.append(generator)
+
+    return divisions
+        
 
     
 def qr_encode_data_numeric(version: QRVersion, data: str) -> dict:
@@ -481,7 +647,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
     generatorPolynomial = generator_polynomial(version, correction)
 
     #Divide the message polynomial by the generator polynomial
-    remainder = divide_polynomials(messagePolynomial, generatorPolynomial)
+    remainder = divide_polynomials(messagePolynomial, generatorPolynomial, version, correction)
 
 
     return blocks
