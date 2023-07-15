@@ -394,20 +394,20 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
         #Mult generator poly by x^leadingExponentMessage
         generator, exponentsGenerator = multiply_polynomials(generator, exponentsGenerator, [1], [leadingExponentMessage])
 
-        print(f"Message: [{len(messageDataBlock)}] {messageDataBlock}\nExponents: {exponentsMessage}")
-        print(f"Generator: [{len(generator)}] {generator}\nExponents: {exponentsGenerator}")
+        # print(f"Message: [{len(messageDataBlock)}] {messageDataBlock}\nExponents: {exponentsMessage}")
+        # print(f"Generator: [{len(generator)}] {generator}\nExponents: {exponentsGenerator}")
 
         prevResult = messageDataBlock
         prevExponents = exponentsMessage
-        print(f"Prev: [{len(messageDataBlock)}] {messageDataBlock}\nExponents: {exponentsMessage}")
+        # print(f"Prev: [{len(messageDataBlock)}] {messageDataBlock}\nExponents: {exponentsMessage}")
         for i in range(dataCodewords):
-            print(f"Division {i+1}")
+            # print(f"Division {i+1}")
             #1 - Multiply the generator polynomial by the leading term of the message polynomial
             # print(prevResult)
             leadTerm = prevResult[-1]
             generatorMult, exponentsGenerator = multiply_polynomials(generator, exponentsGenerator, [leadTerm], [0])
-            print(f"  Lead term: {leadTerm}")
-            print(f"  Generator: [{len(generatorMult)}] {generatorMult}\n  Exponents: {exponentsGenerator}")
+            # print(f"  Lead term: {leadTerm}")
+            # print(f"  Generator: [{len(generatorMult)}] {generatorMult}\n  Exponents: {exponentsGenerator}")
 
             #2 - XOR the result with the message polynomial
             XORResult = []
@@ -431,8 +431,8 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
                         XORResult.append(prevResult[i] ^ 0)
                         XORExponents.append(prevExponents[i])
 
-            print(" After XOR")
-            print(f"  Generator: [{len(XORResult)}] {XORResult}\n  Exponents: {XORExponents}")
+            # print(" After XOR")
+            # print(f"  Generator: [{len(XORResult)}] {XORResult}\n  Exponents: {XORExponents}")
 
             #3 - Remove the leading 0 term
             XORResult.pop(-1)
@@ -567,13 +567,37 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
 
     blocks['TotalLength'] = totalLength
 
+    blockInfo = GROUPS[version][correction]
+    g1Blocks = blockInfo['GroupOne']['Blocks']
+    g1CodewordsPerBlock = blockInfo['GroupOne']['CodewordsPerBlock']
+    g2Blocks = blockInfo['GroupTwo']['Blocks']
+    g2CodewordsPerBlock = blockInfo['GroupTwo']['CodewordsPerBlock']
+
     #Split the data in bytes
-    for i in range(0, len(totalBits), 8):
-        blocks['dataBytes'].append(totalBits[i:i+8])
+    pos = 0
+    for i in range(0, g1Blocks):
+        codewords = []
+        for j in range(pos, pos+g1CodewordsPerBlock*8, 8):
+            codewords.append(totalBits[j:j+8])
+
+        blocks['dataBytes'].append(codewords)
+        pos += g1CodewordsPerBlock*8
+
+    if g2Blocks:
+        for i in range(0, g2Blocks):
+            codewords = []
+            for j in range(pos, pos+g2CodewordsPerBlock*8, 8):
+                codewords.append(totalBits[j:j+8])
+            
+            blocks['dataBytes'].append(codewords)
+            pos += g2CodewordsPerBlock*8
 
     #Error correction using Reed-Solomon algorithm
-    blockInfo = GROUPS[version][correction]
-    print(blockInfo)
+    # print(blockInfo)
+
+    singleListBytes = []
+    for i in range(0, len(totalBits), 8):
+        singleListBytes.append(totalBits[i:i+8])
 
     #Message polynomial
     messagePolynomial = []
@@ -581,7 +605,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
     for _ in range(0, blockInfo['GroupOne']['Blocks']):
         blockPolynomial = []
         for _ in range(0, blockInfo['GroupOne']['CodewordsPerBlock']):
-            codeword = blocks['dataBytes'][codewordIdx]
+            codeword = singleListBytes[codewordIdx]
             blockPolynomial.append(int(codeword, 2))
 
             codewordIdx += 1
@@ -597,7 +621,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
         for _ in range(0, blockInfo['GroupTwo']['Blocks']):
             blockPolynomial = []
             for _ in range(0, blockInfo['GroupTwo']['CodewordsPerBlock']):
-                codeword = blocks['dataBytes'][codewordIdx]
+                codeword = singleListBytes[codewordIdx]
                 blockPolynomial.append(int(codeword, 2))
 
                 codewordIdx += 1
@@ -616,7 +640,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
 
     #Turn remainder to list of 8 bit strings
     for i in range(0, len(remainder)):
-        print(len(remainder[i]))
+        # print(len(remainder[i]))
         for j in range(0, len(remainder[i])):
             remainder[i][j] = '{0:08b}'.format(remainder[i][j])
 
