@@ -292,15 +292,26 @@ def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels
             if not Idxs:
                 continue
 
-            sumExp = 0
+            values = []
             for j in Idxs:
-                sumExp += resultPoly[j]
+                values.append(resultPoly[j])
+
+            if len(values) == 1:
+                sumExp = values[0]
+            else:
+                sumExp = values[0] ^ values[1]
 
             sumTerms.append(sumExp)
 
         print(f"Sum terms: {sumTerms}")
 
         prevResult = sumTerms
+
+    return prevResult
+
+#Divide the polynomial by the generator polynomial
+def divide_polynomials(message: list, generator: list):
+    pass
 
     
 def qr_encode_data_numeric(version: QRVersion, data: str) -> dict:
@@ -468,6 +479,9 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
 
     #Generator polynomial
     generatorPolynomial = generator_polynomial(version, correction)
+
+    #Divide the message polynomial by the generator polynomial
+    remainder = divide_polynomials(messagePolynomial, generatorPolynomial)
 
 
     return blocks
