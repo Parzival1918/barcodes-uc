@@ -442,7 +442,7 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
             for i in range(0, len(exponentsGenerator)):
                 exponentsGenerator[i] -= 1
 
-        divisions.append(generator)
+        divisions.append(XORResult)
 
     return divisions
         
@@ -498,10 +498,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
         },
         'TotalLength': 0,
         'dataBytes': [],
-        'ErrorCorrection': {
-            'GroupOne': [],
-            'GroupTwo': [],
-        }
+        'ErrorCorrection': [],
     }
     totalLength = 0
     totalBits = ''
@@ -617,6 +614,16 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
     #Divide the message polynomial by the generator polynomial
     remainder = divide_polynomials(messagePolynomial, generatorPolynomial, version, correction)
 
+    #Turn remainder to list of 8 bit strings
+    for i in range(0, len(remainder)):
+        print(len(remainder[i]))
+        for j in range(0, len(remainder[i])):
+            remainder[i][j] = '{0:08b}'.format(remainder[i][j])
+
+        #Flip the remainder
+        remainder[i].reverse()
+
+    blocks['ErrorCorrection'] = remainder
 
     return blocks
 
