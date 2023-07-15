@@ -232,11 +232,65 @@ def qr_count_indicator(version: QRVersion, encoding: QREncoding, data: str) -> s
         return '{0:0{1}b}'.format(count, size)
     elif encoding == QREncoding.byte or encoding == QREncoding.kanji:
         return '{0:0{1}b}'.format(count, size)
-    
+
+def find_indices(list_to_check, item_to_find):
+    indices = []
+    for idx, value in enumerate(list_to_check):
+        if value == item_to_find:
+            indices.append(idx)
+    return indices
+
 #Function to generate the generator polynomial
 def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels) -> list:
     n = ERR_CORR_CODEWORDS_BLOCK[version][correction]
     prevResult = [1, 1]  # Start with x + 1
+    for N in range(1, n):
+        termGF = [N, 0]  # Multiply previous term by (x - 2^N)
+
+        #Convert prevResult to alpha notation
+        prevGF = [0]*len(prevResult)
+        for i in range(0, len(prevResult)):
+            prevGF[i] = GF256.index(prevResult[i])
+
+        print(f"PrevGF: {prevGF}. TermGF: {termGF}")
+
+        #Multiply the terms
+        # result = [0]*(len(termGF) + len(prevGF) - 1)
+        # for i in range(0, len(termGF)):
+        #     for j in range(0, len(prevGF)):
+        #         result[i+j] ^= GF256[(prevGF[j] + termGF[i])%255]
+        result = []
+        expX = []
+        pos = 0
+        for i in termGF:
+            for pos,j in enumerate(prevGF):
+                result.append(i+j)
+                if pos == 0:
+                    expX.append(pos)
+                else:
+                    expX.append(pos+1)
+
+            pos += 1
+
+        print(f"Mult GF terms: {result}")
+
+        #Convert result to polynomial notation
+        resultPoly = []
+        for i in result:
+            resultPoly.append(GF256[i])
+
+        print(f"Length of result: {len(result)}")
+        print(resultPoly)
+
+        #Add all the terms with the same exponent
+        sumTerms = []
+        for i in range(0, len(resultPoly)):
+            Idxs = find_indices(expX, i)
+            
+
+        prevResult = resultPoly
+
+
     
 def qr_encode_data_numeric(version: QRVersion, data: str) -> dict:
     blocks = {
@@ -383,9 +437,8 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
         blockPolynomial.reverse()
         messagePolynomial.append(blockPolynomial)
 
-    blocks['ErrorCorrection']['GroupOne'] = messagePolynomial
-
-    messagePolynomial = []
+    # blocks['ErrorCorrection']['GroupOne'] = messagePolynomial
+    # messagePolynomial = []
 
     if blockInfo['GroupTwo']['Blocks']:
         for _ in range(0, blockInfo['GroupTwo']['Blocks']):
@@ -400,7 +453,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
             blockPolynomial.reverse()
             messagePolynomial.append(blockPolynomial)
             
-    blocks['ErrorCorrection']['GroupTwo'] = messagePolynomial
+    # blocks['ErrorCorrection']['GroupTwo'] = messagePolynomial
 
     #Generator polynomial
     generatorPolynomial = generator_polynomial(version, correction)
