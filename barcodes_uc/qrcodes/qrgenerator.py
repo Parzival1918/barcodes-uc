@@ -3,7 +3,7 @@
 from . import qrinfo
 
 class QR:
-    def __init__(self, msg: str = "Hello World", encoding: qrinfo.QREncoding = qrinfo.QREncoding.alphanumeric, version: qrinfo.QRVersion = qrinfo.QRVersion.version1, error_correction: qrinfo.QRErrorCorrectionLevels = qrinfo.QRErrorCorrectionLevels.L):
+    def __init__(self, msg: str = "Hello World", encoding: qrinfo.QREncoding = qrinfo.QREncoding.byte, version: qrinfo.QRVersion = qrinfo.QRVersion.version1, error_correction: qrinfo.QRErrorCorrectionLevels = qrinfo.QRErrorCorrectionLevels.L):
         self.msg = msg
         self.encoding = encoding
         self.version = version

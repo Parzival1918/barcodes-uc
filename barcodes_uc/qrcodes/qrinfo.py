@@ -7,12 +7,14 @@
 import pandas as pd
 from pathlib import Path
 from enum import Enum
+import numpy as np
 
 FILE_PATH = Path(__file__).parent / "../../data"
 
 #From ../../data import the csv files with the qr code information
 __CAPABILITIES = pd.read_csv(FILE_PATH / 'capabilities.csv')
 __ERR_CORR = pd.read_csv(FILE_PATH / 'error_correction_table.csv')
+__ERR_CORR = __ERR_CORR.replace(np.nan, None)
 __GF = pd.read_csv(FILE_PATH / 'GF256.csv')
 
 #List with the GF256 values, idx is exponent of 2^n
@@ -231,6 +233,11 @@ def qr_count_indicator(version: QRVersion, encoding: QREncoding, data: str) -> s
     elif encoding == QREncoding.byte or encoding == QREncoding.kanji:
         return '{0:0{1}b}'.format(count, size)
     
+#Function to generate the generator polynomial
+def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels) -> list:
+    n = ERR_CORR_CODEWORDS_BLOCK[version][correction]
+    prevResult = [1, 1]  # Start with x + 1
+    
 def qr_encode_data_numeric(version: QRVersion, data: str) -> dict:
     blocks = {
         'Mode': '',
@@ -277,11 +284,14 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
         'ExtraPadding': {
             'TerminatorZeros': '',
             'MultipleOf8': '',
-            'PadBytes': []
+            'PadBytes': [],
         },
         'TotalLength': 0,
         'dataBytes': [],
-        'ErrorCorrection': []
+        'ErrorCorrection': {
+            'GroupOne': [],
+            'GroupTwo': [],
+        }
     }
     totalLength = 0
     totalBits = ''
@@ -356,12 +366,45 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
 
     #Error correction using Reed-Solomon algorithm
     blockInfo = GROUPS[version][correction]
+    print(blockInfo)
 
     #Message polynomial
-    messageP = []
+    messagePolynomial = []
+    codewordIdx = 0
+    for _ in range(0, blockInfo['GroupOne']['Blocks']):
+        blockPolynomial = []
+        for _ in range(0, blockInfo['GroupOne']['CodewordsPerBlock']):
+            codeword = blocks['dataBytes'][codewordIdx]
+            blockPolynomial.append(int(codeword, 2))
 
+            codewordIdx += 1
+
+        #Flip the block polynomial and append it to the message polynomial
+        blockPolynomial.reverse()
+        messagePolynomial.append(blockPolynomial)
+
+    blocks['ErrorCorrection']['GroupOne'] = messagePolynomial
+
+    messagePolynomial = []
+
+    if blockInfo['GroupTwo']['Blocks']:
+        for _ in range(0, blockInfo['GroupTwo']['Blocks']):
+            blockPolynomial = []
+            for _ in range(0, blockInfo['GroupTwo']['CodewordsPerBlock']):
+                codeword = blocks['dataBytes'][codewordIdx]
+                blockPolynomial.append(int(codeword, 2))
+
+                codewordIdx += 1
+
+            #Flip the block polynomial and append it to the message polynomial
+            blockPolynomial.reverse()
+            messagePolynomial.append(blockPolynomial)
+            
+    blocks['ErrorCorrection']['GroupTwo'] = messagePolynomial
 
     #Generator polynomial
+    generatorPolynomial = generator_polynomial(version, correction)
+
 
     return blocks
 
