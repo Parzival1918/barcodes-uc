@@ -15,7 +15,7 @@ FILE_PATH = Path(__file__).parent / "../../data"
 #From ../../data import the csv files with the qr code information
 __CAPABILITIES = pd.read_csv(FILE_PATH / 'capabilities.csv')
 __ERR_CORR = pd.read_csv(FILE_PATH / 'error_correction_table.csv')
-__ERR_CORR = __ERR_CORR.replace(np.nan, None)
+__ERR_CORR = __ERR_CORR.replace(np.nan, 0)
 __GF = pd.read_csv(FILE_PATH / 'GF256.csv')
 
 #List with the GF256 values, idx is exponent of 2^n
@@ -64,12 +64,12 @@ for version in pd.unique(__ERR_CORR['Version']):
 for index, row in __ERR_CORR.iterrows():
     GROUPS[row['Version']][row['Error Correction Level']] = {
         'GroupOne': {
-            'Blocks': row['Group One Number of Blocks'],
-            'CodewordsPerBlock': row['Group One Number of Data Codewords Per Block']
+            'Blocks': int(row['Group One Number of Blocks']),
+            'CodewordsPerBlock': int(row['Group One Number of Data Codewords Per Block'])
         },
         'GroupTwo': {
-            'Blocks': row['Group Two Number of Blocks'],
-            'CodewordsPerBlock': row['Group Two Number of Data Codewords Per Block']
+            'Blocks': int(row['Group Two Number of Blocks']),
+            'CodewordsPerBlock': int(row['Group Two Number of Data Codewords Per Block'])
         }
     }
 
@@ -573,7 +573,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
 
     #Error correction using Reed-Solomon algorithm
     blockInfo = GROUPS[version][correction]
-    # print(blockInfo)
+    print(blockInfo)
 
     #Message polynomial
     messagePolynomial = []
