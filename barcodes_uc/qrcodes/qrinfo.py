@@ -250,29 +250,29 @@ def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels
         #Convert prevResult to alpha notation
         prevGF = [0]*len(prevResult)
         for i in range(0, len(prevResult)):
-            prevGF[i] = GF256.index(prevResult[i])
+            if prevResult[i] > 255:
+                prevGF[i] = GF256.index(prevResult[i]%255)
+            else:
+                prevGF[i] = GF256.index(prevResult[i])
 
         print(f"PrevGF: {prevGF}. TermGF: {termGF}")
 
         #Multiply the terms
-        # result = [0]*(len(termGF) + len(prevGF) - 1)
-        # for i in range(0, len(termGF)):
-        #     for j in range(0, len(prevGF)):
-        #         result[i+j] ^= GF256[(prevGF[j] + termGF[i])%255]
         result = []
         expX = []
-        pos = 0
+        pos0 = 0
         for i in termGF:
             for pos,j in enumerate(prevGF):
-                result.append(i+j)
-                if pos == 0:
+                result.append((i+j)%255)
+                if pos0 == 0:
                     expX.append(pos)
                 else:
                     expX.append(pos+1)
 
-            pos += 1
+            pos0 += 1
 
         print(f"Mult GF terms: {result}")
+        print(f"Exponents: {expX}")
 
         #Convert result to polynomial notation
         resultPoly = []
@@ -286,10 +286,21 @@ def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels
         sumTerms = []
         for i in range(0, len(resultPoly)):
             Idxs = find_indices(expX, i)
-            
+            print(f"{i}: {Idxs}")
 
-        prevResult = resultPoly
+            #Skip if there list is empty
+            if not Idxs:
+                continue
 
+            sumExp = 0
+            for j in Idxs:
+                sumExp += resultPoly[j]
+
+            sumTerms.append(sumExp)
+
+        print(f"Sum terms: {sumTerms}")
+
+        prevResult = sumTerms
 
     
 def qr_encode_data_numeric(version: QRVersion, data: str) -> dict:
@@ -420,7 +431,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
 
     #Error correction using Reed-Solomon algorithm
     blockInfo = GROUPS[version][correction]
-    print(blockInfo)
+    # print(blockInfo)
 
     #Message polynomial
     messagePolynomial = []
