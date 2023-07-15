@@ -397,40 +397,6 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
         print(f"Message: [{len(messageDataBlock)}] {messageDataBlock}\nExponents: {exponentsMessage}")
         print(f"Generator: [{len(generator)}] {generator}\nExponents: {exponentsGenerator}")
 
-        # pos = 0
-        # prevResult = messageDataBlock
-        # prevExponents = exponentsMessage
-        # for _ in range(dataCodewords):
-        #     #Mult generator by lead term of message poly
-        #     if pos == 0:
-        #         leadTermMessage = messageDataBlock[-1]
-        #     else:
-        #         leadTermMessage = generator[-1]
-        #     print(f"Lead term message: {leadTermMessage}")
-
-        #     generator, exponentsGenerator = multiply_polynomials(generator, exponentsGenerator, [leadTermMessage], [0])
-
-        #     print(f"After mult with lead term\n  Generator: [{len(generator)}] {generator}\n  Exponents: {exponentsGenerator}")
-
-        #     #XOR the result with the message poly and discard the leading 0 term
-        #     for i in range(0, len(exponentsGenerator)):
-        #         if exponentsGenerator[i] in prevExponents:
-        #             idx = prevExponents.index(exponentsGenerator[i])
-        #             print(f"Generator: {generator[i]} XOR {prevResult[idx]}")
-        #             generator[i] = generator[i] ^ prevResult[idx]
-        #         else:
-        #             print(f"Generator: {generator[i]} XOR 0")
-        #             generator[i] = generator[i] ^ 0
-
-        #     print(f"Generator: [{len(generator)}] {generator}\nExponents: [{len(exponentsGenerator)}] {exponentsGenerator}")
-            
-        #     #Remove leading 0 term
-        #     generator.pop(-1)
-        #     exponentsGenerator.pop(-1)
-        #     prevResult = generator
-        #     prevExponents = exponentsGenerator
-        #     pos += 1
-
         prevResult = messageDataBlock
         prevExponents = exponentsMessage
         print(f"Prev: [{len(messageDataBlock)}] {messageDataBlock}\nExponents: {exponentsMessage}")
@@ -439,26 +405,27 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
             #1 - Multiply the generator polynomial by the leading term of the message polynomial
             # print(prevResult)
             leadTerm = prevResult[-1]
-            generator, exponentsGenerator = multiply_polynomials(generator, exponentsGenerator, [leadTerm], [0])
-            print(f"  Generator: [{len(generator)}] {generator}\n  Exponents: {exponentsGenerator}")
+            generatorMult, exponentsGenerator = multiply_polynomials(generator, exponentsGenerator, [leadTerm], [0])
+            print(f"  Lead term: {leadTerm}")
+            print(f"  Generator: [{len(generatorMult)}] {generatorMult}\n  Exponents: {exponentsGenerator}")
 
             #2 - XOR the result with the message polynomial
             XORResult = []
             XORExponents = []
-            if len(generator) > len(prevResult):
+            if len(generatorMult) > len(prevResult):
                 for i in range(0, len(exponentsGenerator)):
                     if exponentsGenerator[i] in prevExponents:
                         idx = prevExponents.index(exponentsGenerator[i])
-                        XORResult.append(generator[i] ^ prevResult[idx])
+                        XORResult.append(generatorMult[i] ^ prevResult[idx])
                         XORExponents.append(exponentsGenerator[i])
                     else:
-                        XORResult.append(generator[i] ^ 0)
+                        XORResult.append(generatorMult[i] ^ 0)
                         XORExponents.append(exponentsGenerator[i])
             else:
                 for i in range(0, len(prevExponents)):
                     if prevExponents[i] in exponentsGenerator:
                         idx = exponentsGenerator.index(prevExponents[i])
-                        XORResult.append(generator[idx] ^ prevResult[i])
+                        XORResult.append(generatorMult[idx] ^ prevResult[i])
                         XORExponents.append(prevExponents[i])
                     else:
                         XORResult.append(prevResult[i] ^ 0)
@@ -472,7 +439,8 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
             XORExponents.pop(-1)
             prevResult = XORResult
             prevExponents = XORExponents
-
+            for i in range(0, len(exponentsGenerator)):
+                exponentsGenerator[i] -= 1
 
         divisions.append(generator)
 
