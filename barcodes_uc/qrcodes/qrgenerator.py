@@ -3,7 +3,22 @@
 from . import qrinfo
 
 class QR:
-    pass
+    def __init__(self, size: int = 21) -> None:
+        self.size = size
+        self.matrix = [[0 for i in range(size)] for j in range(size)]
+
+    # def set_size(self, size: int):
+    #     self.size = size
+    #     self.matrix = [[0 for i in range(size)] for j in range(size)]
+
+    def __str__(self): #TODO: Make this look better
+        buildString = ""
+        for row in self.matrix:
+            for col in row:
+                buildString += str(col)
+            buildString += "\n"
+
+        return buildString
 
 class QRGenerator:
     def __init__(self, msg: str = "Hello World", encoding: qrinfo.QREncoding = qrinfo.QREncoding.byte, version: qrinfo.QRVersion = qrinfo.QRVersion.v1, error_correction: qrinfo.QRErrorCorrectionLevels = qrinfo.QRErrorCorrectionLevels.L):
@@ -34,6 +49,12 @@ class QRGenerator:
 
         #interleave data blocks and error correction blocks if necessary
         interleavedData = qrinfo.interleave_blocks(rawData['dataBytes'], rawData['ErrorCorrection'])
+
+        #Place the modules and function patterns in the matrix
+        qr = QR(size=qrinfo.qr_size(self.version))
+        print(qr.matrix)
+        print(qr)
+
 
         return interleavedData
 
