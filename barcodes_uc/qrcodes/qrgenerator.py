@@ -3,6 +3,9 @@
 from . import qrinfo
 
 class QR:
+    pass
+
+class QRGenerator:
     def __init__(self, msg: str = "Hello World", encoding: qrinfo.QREncoding = qrinfo.QREncoding.byte, version: qrinfo.QRVersion = qrinfo.QRVersion.v1, error_correction: qrinfo.QRErrorCorrectionLevels = qrinfo.QRErrorCorrectionLevels.L):
         self.msg = msg
         self.encoding = encoding
@@ -27,12 +30,12 @@ class QR:
         # if not self.check():
         #     raise ValueError("Message is too long for the specified encoding, version and error correction level.")
         rawData = qrinfo.qr_encode_data(self.version, self.encoding, self.error_correction, self.msg)
+        print(rawData)
 
         #interleave data blocks and error correction blocks if necessary
-        
-        
+        interleavedData = qrinfo.interleave_blocks(rawData['dataBytes'], rawData['ErrorCorrection'])
 
-        return rawData
+        return interleavedData
 
 
 

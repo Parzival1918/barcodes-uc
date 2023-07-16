@@ -4,11 +4,10 @@
 
 #imports
 
-import pandas as pd
 from pathlib import Path
 from enum import Enum
 import numpy as np
-from copy import deepcopy
+import pandas as pd
 
 FILE_PATH = Path(__file__).parent / "../../data"
 
@@ -373,6 +372,38 @@ def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels
 
     return prevResult
 
+def interleave_blocks(dataBlocks: list, errorCorrectionBlocks: list) -> list:
+    interleavedData = []
+
+    #Find max length of data blocks
+    maxLength = 0
+    for i in range(0, len(dataBlocks)):
+        if len(dataBlocks[i]) > maxLength:
+            maxLength = len(dataBlocks[i])
+
+    #Interleave the data blocks
+    for i in range(0, maxLength):
+        for dataBlock in dataBlocks:
+            if i < len(dataBlock):
+                interleavedData.append(dataBlock[i])
+
+    #Find max length of error correction blocks
+    maxLength = 0
+    for i in range(0, len(errorCorrectionBlocks)):
+        if len(errorCorrectionBlocks[i]) > maxLength:
+            maxLength = len(errorCorrectionBlocks[i])
+
+    #Interleave the error correction blocks
+    for i in range(0, maxLength):
+        for errorBlock in errorCorrectionBlocks:
+            if i < len(errorBlock):
+                interleavedData.append(errorBlock[i])
+
+    #Add remainder bits
+    remainderBits = 0 #TODO: Calculate the remainder bits
+
+    return interleavedData
+
 #Divide the polynomial by the generator polynomial
 def divide_polynomials(message: list, generator: list, version: QRVersion, correction: QRErrorCorrectionLevels) -> list:
     divisions = []
@@ -445,8 +476,6 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
         divisions.append(XORResult)
 
     return divisions
-        
-
     
 def qr_encode_data_numeric(version: QRVersion, data: str) -> dict:
     blocks = {
@@ -651,24 +680,182 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
 
     return blocks
 
-def qr_encode_data_byte(version: QRVersion, data: str) -> list:
+def qr_encode_data_byte(version: QRVersion, correction: QRErrorCorrectionLevels, data: str) -> list:
+    # blocks = {
+    #     'Mode': '',
+    #     'CharacterCount': '',
+    #     'Data': []
+    # }
+    # count_indicator = qr_count_indicator(version, QREncoding.byte, data)
+
+    # blocks['Mode'] = QREncoding.byte
+    # blocks['CharacterCount'] = count_indicator
+
+    # #split the data in bytes
+    # for i in range(0, len(data)):
+    #     byte = ord(data[i])
+    #     # print(byte)
+    #     formatted = '{0:08b}'.format(byte)
+
+    #     blocks['Data'].append(formatted)
+
+    # return blocks
+
     blocks = {
         'Mode': '',
         'CharacterCount': '',
-        'Data': []
+        'Data': [],
+        'ExtraPadding': {
+            'TerminatorZeros': '',
+            'MultipleOf8': '',
+            'PadBytes': [],
+        },
+        'TotalLength': 0,
+        'dataBytes': [],
+        'ErrorCorrection': [],
     }
+    totalLength = 0
+    totalBits = ''
+
     count_indicator = qr_count_indicator(version, QREncoding.byte, data)
 
-    blocks['Mode'] = QREncoding.byte
+    blocks['Mode'] = QREncoding.byte.value
     blocks['CharacterCount'] = count_indicator
-
-    #split the data in bytes
+    totalLength += len(count_indicator)
+    totalLength += len(QREncoding.byte.value)
+    totalBits += QREncoding.byte.value
+    totalBits += count_indicator
+    
     for i in range(0, len(data)):
         byte = ord(data[i])
         # print(byte)
         formatted = '{0:08b}'.format(byte)
 
         blocks['Data'].append(formatted)
+        totalLength += len(formatted)
+        totalBits += formatted
+
+    dataBits = DATA_CODEWORDS[version][correction]*8
+    remainderLength = dataBits - totalLength
+    # print(remainderLength)
+    # print(dataBits)
+
+    #Extra padding
+
+    #Terminator zeros (4 bits max)
+    if remainderLength >= 4:
+        blocks['ExtraPadding']['TerminatorZeros'] = '0'*4
+        remainderLength -= 4
+        totalLength += 4
+        totalBits += '0'*4
+    else:
+        blocks['ExtraPadding']['TerminatorZeros'] = '0'*remainderLength
+        remainderLength = 0
+        totalLength += remainderLength
+        totalBits += '0'*remainderLength
+
+    #Add 0 until the length is a multiple of 8
+    if remainderLength != 0 and remainderLength%8 != 0:
+        blocks['ExtraPadding']['MultipleOf8'] = '0'*(remainderLength%8)
+        totalBits += '0'*(remainderLength%8)
+
+        totalLength += remainderLength%8
+        remainderLength -= remainderLength%8
+
+    #Padding bytes (8 bits per byte)
+    if remainderLength != 8:
+        padBytePos = 0
+        while remainderLength >= 8:
+            blocks['ExtraPadding']['PadBytes'].append(PAD_BYTES[padBytePos%2])
+            remainderLength -= 8
+            totalLength += 8
+            totalBits += PAD_BYTES[padBytePos%2]
+            
+            padBytePos += 1
+
+    blocks['TotalLength'] = totalLength
+
+    blockInfo = GROUPS[version][correction]
+    g1Blocks = blockInfo['GroupOne']['Blocks']
+    g1CodewordsPerBlock = blockInfo['GroupOne']['CodewordsPerBlock']
+    g2Blocks = blockInfo['GroupTwo']['Blocks']
+    g2CodewordsPerBlock = blockInfo['GroupTwo']['CodewordsPerBlock']
+
+    #Split the data in bytes
+    pos = 0
+    for i in range(0, g1Blocks):
+        codewords = []
+        for j in range(pos, pos+g1CodewordsPerBlock*8, 8):
+            codewords.append(totalBits[j:j+8])
+
+        blocks['dataBytes'].append(codewords)
+        pos += g1CodewordsPerBlock*8
+
+    if g2Blocks:
+        for i in range(0, g2Blocks):
+            codewords = []
+            for j in range(pos, pos+g2CodewordsPerBlock*8, 8):
+                codewords.append(totalBits[j:j+8])
+            
+            blocks['dataBytes'].append(codewords)
+            pos += g2CodewordsPerBlock*8
+
+    #Error correction using Reed-Solomon algorithm
+    # print(blockInfo)
+
+    singleListBytes = []
+    for i in range(0, len(totalBits), 8):
+        singleListBytes.append(totalBits[i:i+8])
+
+    #Message polynomial
+    messagePolynomial = []
+    codewordIdx = 0
+    for _ in range(0, blockInfo['GroupOne']['Blocks']):
+        blockPolynomial = []
+        for _ in range(0, blockInfo['GroupOne']['CodewordsPerBlock']):
+            codeword = singleListBytes[codewordIdx]
+            blockPolynomial.append(int(codeword, 2))
+
+            codewordIdx += 1
+
+        #Flip the block polynomial and append it to the message polynomial
+        blockPolynomial.reverse()
+        messagePolynomial.append(blockPolynomial)
+
+    # blocks['ErrorCorrection']['GroupOne'] = messagePolynomial
+    # messagePolynomial = []
+
+    if blockInfo['GroupTwo']['Blocks']:
+        for _ in range(0, blockInfo['GroupTwo']['Blocks']):
+            blockPolynomial = []
+            for _ in range(0, blockInfo['GroupTwo']['CodewordsPerBlock']):
+                codeword = singleListBytes[codewordIdx]
+                blockPolynomial.append(int(codeword, 2))
+
+                codewordIdx += 1
+
+            #Flip the block polynomial and append it to the message polynomial
+            blockPolynomial.reverse()
+            messagePolynomial.append(blockPolynomial)
+
+    # blocks['ErrorCorrection']['GroupTwo'] = messagePolynomial
+
+    #Generator polynomial
+    generatorPolynomial = generator_polynomial(version, correction)
+
+    #Divide the message polynomial by the generator polynomial
+    remainder = divide_polynomials(messagePolynomial, generatorPolynomial, version, correction)
+
+    #Turn remainder to list of 8 bit strings
+    for i in range(0, len(remainder)):
+        # print(len(remainder[i]))
+        for j in range(0, len(remainder[i])):
+            remainder[i][j] = '{0:08b}'.format(remainder[i][j])
+
+        #Flip the remainder
+        remainder[i].reverse()
+
+    blocks['ErrorCorrection'] = remainder
 
     return blocks
     
@@ -684,6 +871,6 @@ def qr_encode_data(version: QRVersion, encoding: QREncoding, correction: QRError
     elif encoding == QREncoding.alphanumeric:
         return qr_encode_data_alphanumeric(version, correction, data)
     elif encoding == QREncoding.byte:
-        return qr_encode_data_byte(version, data)
+        return qr_encode_data_byte(version, correction, data)
     elif encoding == QREncoding.kanji:
         return None
