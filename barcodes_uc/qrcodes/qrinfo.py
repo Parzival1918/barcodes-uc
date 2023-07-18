@@ -16,6 +16,7 @@ __CAPABILITIES = pd.read_csv(FILE_PATH / 'capabilities.csv')
 __ERR_CORR = pd.read_csv(FILE_PATH / 'error_correction_table.csv')
 __ERR_CORR = __ERR_CORR.replace(np.nan, 0)
 __GF = pd.read_csv(FILE_PATH / 'GF256.csv')
+__ALIGNMENT = pd.read_csv(FILE_PATH / 'alignment_locations.csv', sep=' ')
 
 #List with the GF256 values, idx is exponent of 2^n
 GF256 = []
@@ -72,10 +73,21 @@ for index, row in __ERR_CORR.iterrows():
         }
     }
 
+#Alignment patterns
+ALIGNMENT_PATTERNS = {}
+for version in pd.unique(__ALIGNMENT['Version']):
+    ALIGNMENT_PATTERNS[version] = []
+
+for index, row in __ALIGNMENT.iterrows():
+    locationsArray = row['CenterLocations'].split(',')
+    locationsArray = [int(i) for i in locationsArray]
+    ALIGNMENT_PATTERNS[row['Version']] = locationsArray
+
 #Delete the CAPABILITIES and ERR_CORR dataframes
 del __CAPABILITIES
 del __ERR_CORR
 del __GF
+del __ALIGNMENT
 
 #Padding bytes
 PAD_BYTES = ['11101100', '00010001']
@@ -874,3 +886,17 @@ def qr_encode_data(version: QRVersion, encoding: QREncoding, correction: QRError
         return qr_encode_data_byte(version, correction, data)
     elif encoding == QREncoding.kanji:
         return None
+
+def alignment_pattern_locations(version: QRVersion) -> list:
+    positions = ALIGNMENT_PATTERNS[version]
+    locations = []
+
+    for i in positions:
+        for j in positions:
+            #Skip if position is on top of the finder patterns
+            if (i == 6 and j == 6) or (i == 6 and j == (qr_size(version)-7)) or (i == (qr_size(version)-7) and j == 6):
+                continue
+
+            locations.append((i, j))
+
+    return locations
