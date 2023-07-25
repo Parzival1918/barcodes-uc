@@ -185,18 +185,19 @@ class QRGenerator:
                 posy += 1
                 directionLR = 1
             elif directionUD == -1 and directionLR == 1:
-                posx += 1
+                # posx += 1
                 posy -= 1
                 directionLR = -1
             elif directionUD == -1 and directionLR == -1:
                 posy += 1
+                posx += 1
                 directionLR = 1
 
             #Check if we need to change direction
             if posx == -1:
                 directionUD = -1
                 posx = 0
-                directionLR = -1
+                directionLR = 1
                 posy -= 2
             elif posx == qr.size:
                 directionUD = 1
@@ -206,12 +207,18 @@ class QRGenerator:
 
             if posy == 6:
                 posy -= 1
+
+            if posy <= 0:
+                print('No more space for data')
+                #exit loop
+                break
                 
 
         print(qr)
         print(interleavedData)
+        print(dataPos)
 
-        return interleavedData
+        return qr
 
 
 

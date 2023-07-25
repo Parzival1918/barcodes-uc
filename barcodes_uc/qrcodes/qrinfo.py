@@ -888,7 +888,11 @@ def qr_encode_data(version: QRVersion, encoding: QREncoding, correction: QRError
         return None
 
 def alignment_pattern_locations(version: QRVersion) -> list:
-    positions = ALIGNMENT_PATTERNS[version]
+    if version != 1:
+        positions = ALIGNMENT_PATTERNS[version]
+    else:
+        positions = []
+        
     locations = []
 
     for i in positions:
