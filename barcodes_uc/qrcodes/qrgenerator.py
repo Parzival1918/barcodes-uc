@@ -68,6 +68,8 @@ class QRGenerator:
 
         #interleave data blocks and error correction blocks if necessary
         interleavedData = qrinfo.interleave_blocks(rawData['dataBytes'], rawData['ErrorCorrection'])
+        #Join the interleaved data blocks into one string
+        interleavedData = ''.join(interleavedData)
 
         #Place the modules and function patterns in the matrix
         qr = QR(version=self.version)
@@ -154,10 +156,60 @@ class QRGenerator:
             qr.matrix[qr.size - i][8] = 'x'
 
         #7 - Reserve version information area
+        if self.version >= qrinfo.QRVersion.v7:
+            for i in range(6):
+                for j in range(3):
+                    qr.matrix[i][qr.size - 11 + j] = 'x'
+                    qr.matrix[qr.size - 11 + j][i] = 'x'
 
         #8 - Add data
+        #Start from bottom right
+        posx = qr.size - 1
+        posy = qr.size - 1
+        directionUD = 1 #1 = up, -1 = down
+        directionLR = 1 #1 = left, -1 = right
+        dataPos = 0
+        while dataPos < len(interleavedData):
+            #Check if we can place data
+            if qr.matrix[posx][posy] == 'X':
+                qr.matrix[posx][posy] = interleavedData[dataPos]
+                dataPos += 1 #Move to next data bit
+            print(posx, posy, dataPos, len(interleavedData))
+
+            #Move to next position
+            if directionUD == 1 and directionLR == 1:
+                posy -= 1
+                directionLR = -1
+            elif directionUD == 1 and directionLR == -1:
+                posx -= 1
+                posy += 1
+                directionLR = 1
+            elif directionUD == -1 and directionLR == 1:
+                posx += 1
+                posy -= 1
+                directionLR = -1
+            elif directionUD == -1 and directionLR == -1:
+                posy += 1
+                directionLR = 1
+
+            #Check if we need to change direction
+            if posx == -1:
+                directionUD = -1
+                posx = 0
+                directionLR = -1
+                posy -= 2
+            elif posx == qr.size:
+                directionUD = 1
+                posx = qr.size - 1
+                directionLR = 1
+                posy -= 2
+
+            if posy == 6:
+                posy -= 1
+                
 
         print(qr)
+        print(interleavedData)
 
         return interleavedData
 
