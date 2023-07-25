@@ -25,6 +25,7 @@ class QR:
         self.size = qrinfo.qr_size(version)
         self.version = version
         self.matrix = [['X' for i in range(self.size)] for j in range(self.size)]
+        self.reserved_positions = [[0 for i in range(self.size)] for j in range(self.size)]
 
     # def set_size(self, size: int):
     #     self.size = size
@@ -162,6 +163,13 @@ class QRGenerator:
                     qr.matrix[i][qr.size - 11 + j] = 'x'
                     qr.matrix[qr.size - 11 + j][i] = 'x'
 
+        #Copy reserved positions to reserved_positions
+        for posx,row in enumerate(qr.matrix):
+            for posy,col in enumerate(row):
+                if col == 'x' or col == 1 or col == 0:
+                    qr.reserved_positions[posx][posy] = 1
+        # print(qr.reserved_positions)
+
         #8 - Add data
         #Start from bottom right
         posx = qr.size - 1
@@ -213,6 +221,8 @@ class QRGenerator:
                 #exit loop
                 break
                 
+        #9 - Masking
+        # qr.matrix = qrinfo.qr_masking(qr.matrix, qr.reserved_positions)
 
         print(qr)
         print(dataPos, len(interleavedData), (len(interleavedData)-dataPos))

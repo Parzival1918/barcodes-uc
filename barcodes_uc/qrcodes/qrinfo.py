@@ -922,3 +922,68 @@ def alignment_pattern_locations(version: QRVersion) -> list:
             locations.append((i, j))
 
     return locations
+
+def calculate_penalty_score(moduleMatrix: list) -> int:
+    pass
+
+def apply_mask(moduleMatrix: list, mask: int, reservedPositions: list) -> list:
+    if mask > 7:
+        raise Exception('The mask number must be between 0 and 7.')
+    
+    if mask == 0:
+        for posRow, row in enumerate(moduleMatrix):
+            for posCol, col in enumerate(row):
+                if (posRow + posCol)%2 == 0 and reservedPositions[posRow][posCol] == 0:
+                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+    elif mask == 1:
+        for posRow, row in enumerate(moduleMatrix):
+            for posCol, col in enumerate(row):
+                if posRow%2 == 0 and reservedPositions[posRow][posCol] == 0:
+                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+    elif mask == 2:
+        for posRow, row in enumerate(moduleMatrix):
+            for posCol, col in enumerate(row):
+                if posCol%3 == 0 and reservedPositions[posRow][posCol] == 0:
+                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+    elif mask == 3:
+        for posRow, row in enumerate(moduleMatrix):
+            for posCol, col in enumerate(row):
+                if (posRow + posCol)%3 == 0 and reservedPositions[posRow][posCol] == 0:
+                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+    elif mask == 4:
+        for posRow, row in enumerate(moduleMatrix):
+            for posCol, col in enumerate(row):
+                if (posRow//2 + posCol//3)%2 == 0 and reservedPositions[posRow][posCol] == 0:
+                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+    elif mask == 5:
+        for posRow, row in enumerate(moduleMatrix):
+            for posCol, col in enumerate(row):
+                if (posRow*posCol)%2 + (posRow*posCol)%3 == 0 and reservedPositions[posRow][posCol] == 0:
+                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+    elif mask == 6:
+        for posRow, row in enumerate(moduleMatrix):
+            for posCol, col in enumerate(row):
+                if ((posRow*posCol)%2 + (posRow*posCol)%3)%2 == 0 and reservedPositions[posRow][posCol] == 0:
+                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+    elif mask == 7:
+        for posRow, row in enumerate(moduleMatrix):
+            for posCol, col in enumerate(row):
+                if ((posRow + posCol)%2 + (posRow*posCol)%3)%2 == 0 and reservedPositions[posRow][posCol] == 0:
+                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+        
+    return moduleMatrix
+
+
+#Function to do the qr masking
+def qr_masking(data: list, reservedPositions: list) -> list:
+    if len(data) != len(reservedPositions):
+        raise Exception('The data and reserved positions lists must have the same length.')
+    
+    #Apply all 8 masks and calculate the penalty score
+    penaltyScores = []
+    maskedPatterns = []
+
+    for i in range(0, 8):
+        maskedData = apply_mask(data, i, reservedPositions)
+        maskedPatterns.append(maskedData)
+        penaltyScores.append(calculate_penalty_score(maskedData))
