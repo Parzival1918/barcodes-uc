@@ -67,7 +67,7 @@ class QRGenerator:
         # print(rawData)
 
         #interleave data blocks and error correction blocks if necessary
-        interleavedData = qrinfo.interleave_blocks(rawData['dataBytes'], rawData['ErrorCorrection'])
+        interleavedData = qrinfo.interleave_blocks(rawData['dataBytes'], rawData['ErrorCorrection'], self.version)
         #Join the interleaved data blocks into one string
         interleavedData = ''.join(interleavedData)
 
@@ -174,7 +174,7 @@ class QRGenerator:
             if qr.matrix[posx][posy] == 'X':
                 qr.matrix[posx][posy] = interleavedData[dataPos]
                 dataPos += 1 #Move to next data bit
-            print(posx, posy, dataPos, len(interleavedData))
+            # print(posx, posy, dataPos, len(interleavedData))
 
             #Move to next position
             if directionUD == 1 and directionLR == 1:
@@ -208,15 +208,14 @@ class QRGenerator:
             if posy == 6:
                 posy -= 1
 
-            if posy <= 0:
+            if posy < 0:
                 print('No more space for data')
                 #exit loop
                 break
                 
 
         print(qr)
-        print(interleavedData)
-        print(dataPos)
+        print(dataPos, len(interleavedData), (len(interleavedData)-dataPos))
 
         return qr
 

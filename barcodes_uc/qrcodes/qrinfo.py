@@ -384,7 +384,23 @@ def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels
 
     return prevResult
 
-def interleave_blocks(dataBlocks: list, errorCorrectionBlocks: list) -> list:
+#Function that returns number of remainder bits
+def remainder_bits(version: QRVersion) -> int:
+    if version > 1:
+        if version <= 6:
+            return 7
+        elif version <= 13:
+            return 0
+        elif version <= 20:
+            return 3
+        elif version <= 27:
+            return 4
+        elif version <= 34:
+            return 3
+        elif version <= 40:
+            return 0
+
+def interleave_blocks(dataBlocks: list, errorCorrectionBlocks: list, version: QRVersion) -> list:
     interleavedData = []
 
     #Find max length of data blocks
@@ -412,7 +428,9 @@ def interleave_blocks(dataBlocks: list, errorCorrectionBlocks: list) -> list:
                 interleavedData.append(errorBlock[i])
 
     #Add remainder bits
-    remainderBits = 0 #TODO: Calculate the remainder bits
+    remainderBits = remainder_bits(version)
+    if remainderBits:
+        interleavedData.append('0'*remainderBits)
 
     return interleavedData
 
@@ -892,7 +910,7 @@ def alignment_pattern_locations(version: QRVersion) -> list:
         positions = ALIGNMENT_PATTERNS[version]
     else:
         positions = []
-        
+
     locations = []
 
     for i in positions:
