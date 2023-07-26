@@ -17,6 +17,8 @@ __ERR_CORR = pd.read_csv(FILE_PATH / 'error_correction_table.csv')
 __ERR_CORR = __ERR_CORR.replace(np.nan, 0)
 __GF = pd.read_csv(FILE_PATH / 'GF256.csv')
 __ALIGNMENT = pd.read_csv(FILE_PATH / 'alignment_locations.csv', sep=' ')
+__FORMAT = pd.read_csv(FILE_PATH / 'format_table.csv')
+__VERSION = pd.read_csv(FILE_PATH / 'version_table.csv')
 
 #List with the GF256 values, idx is exponent of 2^n
 GF256 = []
@@ -83,11 +85,32 @@ for index, row in __ALIGNMENT.iterrows():
     locationsArray = [int(i) for i in locationsArray]
     ALIGNMENT_PATTERNS[row['Version']] = locationsArray
 
+#Format information
+FORMAT_INFORMATION = {}
+for error in pd.unique(__FORMAT['Error Correction Level']):
+    FORMAT_INFORMATION[error] = {}
+    for mask in pd.unique(__FORMAT['Mask Pattern']):
+        FORMAT_INFORMATION[error][mask] = 0
+
+for index, row in __FORMAT.iterrows():
+    FORMAT_INFORMATION[row['Error Correction Level']][row['Mask Pattern']] = row['Format Information String']
+
+#Version information
+VERSION_INFORMATION = {}
+for version in pd.unique(__VERSION['Version']):
+    VERSION_INFORMATION[version] = 0
+
+for index, row in __VERSION.iterrows():
+    VERSION_INFORMATION[row['Version']] = row['Version Information String']
+
+
 #Delete the CAPABILITIES and ERR_CORR dataframes
 del __CAPABILITIES
 del __ERR_CORR
 del __GF
 del __ALIGNMENT
+del __FORMAT
+del __VERSION
 
 #Padding bytes
 PAD_BYTES = ['11101100', '00010001']
@@ -973,9 +996,34 @@ def apply_mask(moduleMatrix: list, mask: int, reservedPositions: list) -> list:
         
     return moduleMatrix
 
+def add_format_version_information(moduleMatrix: list, errCorrection: QRErrorCorrectionLevels, version: QRVersion) -> list:
+    #Add the format string
+    formatString = FORMAT_INFORMATION[errCorrection][0]
+    for i in range(0, 8):
+        moduleMatrix[8][i] = int(formatString[i])
+
+    for i in range(0, 7):
+        moduleMatrix[8][qr_size(version)-8+i] = int(formatString[i+8])
+
+    for i in range(0, 8):
+        moduleMatrix[qr_size(version)-i-1][8] = int(formatString[i+15])
+
+    for i in range(0, 7):
+        moduleMatrix[qr_size(version)-15+i][8] = int(formatString[i+22])
+
+    #Add the version string
+    if version >= 7:
+        versionString = VERSION_INFORMATION[version]
+        for i in range(0, 6):
+            moduleMatrix[i][qr_size(version)-11] = int(versionString[i])
+
+        for i in range(0, 6):
+            moduleMatrix[qr_size(version)-11][i] = int(versionString[i])
+
+    return moduleMatrix
 
 #Function to do the qr masking
-def qr_masking(data: list, reservedPositions: list) -> list:
+def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrectionLevels, version: QRVersion) -> list:
     if len(data) != len(reservedPositions):
         raise Exception('The data and reserved positions lists must have the same length.')
     
@@ -984,6 +1032,9 @@ def qr_masking(data: list, reservedPositions: list) -> list:
     maskedPatterns = []
 
     for i in range(0, 8):
+        #Add the Format String and Version String
+        data = add_format_version_information(data, errCorrection, version)
+
         maskedData = apply_mask(data, i, reservedPositions)
         maskedPatterns.append(maskedData)
         penaltyScores.append(calculate_penalty_score(maskedData))

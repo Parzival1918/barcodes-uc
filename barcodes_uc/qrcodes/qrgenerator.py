@@ -1,6 +1,6 @@
 
 #imports
-from . import qrinfo
+from . import qrutils
 
 finderPattern = [
     [1,1,1,1,1,1,1],
@@ -21,8 +21,8 @@ alignmentPattern = [
 ]
 
 class QR:
-    def __init__(self, version: qrinfo.QRVersion = qrinfo.QRVersion.v1) -> None:
-        self.size = qrinfo.qr_size(version)
+    def __init__(self, version: qrutils.QRVersion = qrutils.QRVersion.v1) -> None:
+        self.size = qrutils.qr_size(version)
         self.version = version
         self.matrix = [['X' for i in range(self.size)] for j in range(self.size)]
         self.reserved_positions = [[0 for i in range(self.size)] for j in range(self.size)]
@@ -41,7 +41,7 @@ class QR:
         return buildString
 
 class QRGenerator:
-    def __init__(self, msg: str = "Hello World", encoding: qrinfo.QREncoding = qrinfo.QREncoding.byte, version: qrinfo.QRVersion = qrinfo.QRVersion.v1, error_correction: qrinfo.QRErrorCorrectionLevels = qrinfo.QRErrorCorrectionLevels.L):
+    def __init__(self, msg: str = "Hello World", encoding: qrutils.QREncoding = qrutils.QREncoding.byte, version: qrutils.QRVersion = qrutils.QRVersion.v1, error_correction: qrutils.QRErrorCorrectionLevels = qrutils.QRErrorCorrectionLevels.L):
         self.msg = msg
         self.encoding = encoding
         self.version = version
@@ -54,7 +54,7 @@ class QRGenerator:
         return f"QR(msg={self.msg}, encoding={self.encoding}, version={self.version}, error_correction={self.error_correction})"
     
     def check(self):
-        max_character_count = qrinfo.MAX_CHARACTERS[qrinfo.QREncoding(self.encoding).name][self.error_correction][self.version]
+        max_character_count = qrutils.MAX_CHARACTERS[qrutils.QREncoding(self.encoding).name][self.error_correction][self.version]
 
         if len(self.msg) >= max_character_count:
             return False
@@ -64,11 +64,11 @@ class QRGenerator:
     def generate(self):
         # if not self.check():
         #     raise ValueError("Message is too long for the specified encoding, version and error correction level.")
-        rawData = qrinfo.qr_encode_data(self.version, self.encoding, self.error_correction, self.msg)
+        rawData = qrutils.qr_encode_data(self.version, self.encoding, self.error_correction, self.msg)
         # print(rawData)
 
         #interleave data blocks and error correction blocks if necessary
-        interleavedData = qrinfo.interleave_blocks(rawData['dataBytes'], rawData['ErrorCorrection'], self.version)
+        interleavedData = qrutils.interleave_blocks(rawData['dataBytes'], rawData['ErrorCorrection'], self.version)
         #Join the interleaved data blocks into one string
         interleavedData = ''.join(interleavedData)
 
@@ -125,7 +125,7 @@ class QRGenerator:
             value += 1
 
         #4 - Add alignment patterns
-        patternLocations = qrinfo.alignment_pattern_locations(self.version)
+        patternLocations = qrutils.alignment_pattern_locations(self.version)
 
         for patternLocation in patternLocations:
             posx = patternLocation[0]
@@ -157,7 +157,7 @@ class QRGenerator:
             qr.matrix[qr.size - i][8] = 'x'
 
         #7 - Reserve version information area
-        if self.version >= qrinfo.QRVersion.v7:
+        if self.version >= qrutils.QRVersion.v7:
             for i in range(6):
                 for j in range(3):
                     qr.matrix[i][qr.size - 11 + j] = 'x'
@@ -222,7 +222,7 @@ class QRGenerator:
                 break
                 
         #9 - Masking
-        # qr.matrix = qrinfo.qr_masking(qr.matrix, qr.reserved_positions)
+        # qr.matrix = qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
 
         print(qr)
         print(dataPos, len(interleavedData), (len(interleavedData)-dataPos))
