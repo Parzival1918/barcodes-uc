@@ -223,6 +223,7 @@ class QRGenerator:
                 
         #9 - Masking
         # qr.matrix = qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
+        qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
 
         print(qr)
         print(dataPos, len(interleavedData), (len(interleavedData)-dataPos))

@@ -17,8 +17,8 @@ __ERR_CORR = pd.read_csv(FILE_PATH / 'error_correction_table.csv')
 __ERR_CORR = __ERR_CORR.replace(np.nan, 0)
 __GF = pd.read_csv(FILE_PATH / 'GF256.csv')
 __ALIGNMENT = pd.read_csv(FILE_PATH / 'alignment_locations.csv', sep=' ')
-__FORMAT = pd.read_csv(FILE_PATH / 'format_table.csv')
-__VERSION = pd.read_csv(FILE_PATH / 'version_table.csv')
+__FORMAT = pd.read_csv(FILE_PATH / 'format_table.csv', dtype={'Format Information String': str})
+__VERSION = pd.read_csv(FILE_PATH / 'version_table.csv', dtype={'Version Information String': str})
 
 #List with the GF256 values, idx is exponent of 2^n
 GF256 = []
@@ -947,7 +947,31 @@ def alignment_pattern_locations(version: QRVersion) -> list:
     return locations
 
 def calculate_penalty_score(moduleMatrix: list) -> int:
-    pass
+    #Eval condition 1. 5 or more consecutive modules in a row/column with the same color
+    #Horizontal
+    cond1Penalty = 0
+    for row in moduleMatrix:
+        for i in range(0, len(row)-4):
+            if row[i] == row[i+1] == row[i+2] == row[i+3] == row[i+4]:
+                cond1Penalty += 3
+                extraPos = i+5
+                while extraPos < len(row)-4 and row[i] == row[extraPos]:
+                    cond1Penalty += 1
+                    extraPos += 1
+            
+    #Vertical
+    # for i in range(0, len(moduleMatrix)-4):
+    #     for j in range(0, len(moduleMatrix[i])):
+    #         if moduleMatrix[i][j] == moduleMatrix[i+1][j] == moduleMatrix[i+2][j] == moduleMatrix[i+3][j] == moduleMatrix[i+4][j]:
+    #             cond1Penalty += 3
+    #             extraPos = i+5
+    #             while extraPos < len(moduleMatrix)-4 and moduleMatrix[i][j] == moduleMatrix[extraPos][j]:
+    #                 cond1Penalty += 1
+    #                 extraPos += 1
+    # print(f"Condition 1: {cond1Penalty}")
+
+    return cond1Penalty
+
 
 def apply_mask(moduleMatrix: list, mask: int, reservedPositions: list) -> list:
     if mask > 7:
@@ -957,7 +981,11 @@ def apply_mask(moduleMatrix: list, mask: int, reservedPositions: list) -> list:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
                 if (posRow + posCol)%2 == 0 and reservedPositions[posRow][posCol] == 0:
-                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+                    if col == 0:
+                        moduleMatrix[posRow][posCol] = 1
+                    else:
+                        moduleMatrix[posRow][posCol] = 0
+                    # moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
     elif mask == 1:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
@@ -996,29 +1024,51 @@ def apply_mask(moduleMatrix: list, mask: int, reservedPositions: list) -> list:
         
     return moduleMatrix
 
-def add_format_version_information(moduleMatrix: list, errCorrection: QRErrorCorrectionLevels, version: QRVersion) -> list:
+def add_format_version_information(moduleMatrix: list, errCorrection: QRErrorCorrectionLevels, maskNum: int, version: QRVersion) -> list:
     #Add the format string
-    formatString = FORMAT_INFORMATION[errCorrection][0]
-    for i in range(0, 8):
-        moduleMatrix[8][i] = int(formatString[i])
-
-    for i in range(0, 7):
-        moduleMatrix[8][qr_size(version)-8+i] = int(formatString[i+8])
+    # print(errCorrection, maskNum)
+    formatString = FORMAT_INFORMATION[errCorrection][maskNum]
+    # print(len(formatString), formatString)
 
     for i in range(0, 8):
-        moduleMatrix[qr_size(version)-i-1][8] = int(formatString[i+15])
+        if i >= 6:
+            moduleMatrix[8][i+1] = int(formatString[i])
+        else:
+            moduleMatrix[8][i] = int(formatString[i])
+
+    for i in range(0, 8):
+        moduleMatrix[8][qr_size(version)-8+i] = int(formatString[i+7])
 
     for i in range(0, 7):
-        moduleMatrix[qr_size(version)-15+i][8] = int(formatString[i+22])
+        moduleMatrix[qr_size(version)-i-1][8] = int(formatString[i])
+
+    for i in range(0, 7):
+        if i >= 1:
+            moduleMatrix[6-i][8] = int(formatString[i+8])
+        else:
+            moduleMatrix[7][8] = int(formatString[i+8])
 
     #Add the version string
     if version >= 7:
         versionString = VERSION_INFORMATION[version]
+        # print(len(versionString), versionString)
+        pos = 0
         for i in range(0, 6):
-            moduleMatrix[i][qr_size(version)-11] = int(versionString[i])
+            for j in range(0, 3):
+                moduleMatrix[i][qr_size(version)-11+j] = int(versionString[pos])
+                pos += 1
 
+        pos = 0
         for i in range(0, 6):
-            moduleMatrix[qr_size(version)-11][i] = int(versionString[i])
+            for j in range(0, 3):
+                moduleMatrix[qr_size(version)-11+j][i] = int(versionString[pos])
+                pos += 1
+
+    # for row in moduleMatrix:
+    #     for col in row:
+    #         print(col, end='')
+    #     print()
+    # print()
 
     return moduleMatrix
 
@@ -1031,10 +1081,28 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
     penaltyScores = []
     maskedPatterns = []
 
+    for row in reservedPositions:
+        for col in row:
+            print(col, end='')
+        print()
+    print()
+
     for i in range(0, 8):
         #Add the Format String and Version String
-        data = add_format_version_information(data, errCorrection, version)
+        print(f"Mask {i}")
+        data = add_format_version_information(data, errCorrection, i, version)
 
+        for row in data:
+            for col in row:
+                print(col, end='')
+            print()
+        print()
         maskedData = apply_mask(data, i, reservedPositions)
+        for row in maskedData:
+            for col in row:
+                print(col, end='')
+            print()
+        print()
+
         maskedPatterns.append(maskedData)
         penaltyScores.append(calculate_penalty_score(maskedData))
