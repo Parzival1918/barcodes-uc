@@ -1,0 +1,9 @@
+from barcodes_uc.qrcodes import qrutils
+from barcodes_uc.qrcodes import qrgenerator
+import importlib
+importlib.reload(qrutils)
+importlib.reload(qrgenerator)
+
+generator = qrgenerator.QRGenerator(msg="https://github.com/Parzival1918", encoding=qrutils.QREncoding.byte, version=qrutils.QRVersion.v5, error_correction=qrutils.QRErrorCorrectionLevels.Q)
+qr = generator.generate()
+qr.show()

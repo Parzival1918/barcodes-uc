@@ -8,6 +8,7 @@ from pathlib import Path
 from enum import Enum
 import numpy as np
 import pandas as pd
+from copy import deepcopy, copy
 
 FILE_PATH = Path(__file__).parent / "../../data"
 
@@ -977,52 +978,57 @@ def apply_mask(moduleMatrix: list, mask: int, reservedPositions: list) -> list:
     if mask > 7:
         raise Exception('The mask number must be between 0 and 7.')
     
+    maskedMatrix = deepcopy(moduleMatrix)
     if mask == 0:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
                 if (posRow + posCol)%2 == 0 and reservedPositions[posRow][posCol] == 0:
-                    if col == 0:
-                        moduleMatrix[posRow][posCol] = 1
+                    # print('X', end='')
+                    if int(col) == 0:
+                        maskedMatrix[posRow][posCol] = 1
                     else:
-                        moduleMatrix[posRow][posCol] = 0
+                        maskedMatrix[posRow][posCol] = 0
                     # moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+                # else:
+                    # print(' ', end='')
+            # print()
     elif mask == 1:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
                 if posRow%2 == 0 and reservedPositions[posRow][posCol] == 0:
-                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+                    maskedMatrix[posRow][posCol] = 1 if int(col) == 0 else 0
     elif mask == 2:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
                 if posCol%3 == 0 and reservedPositions[posRow][posCol] == 0:
-                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+                    maskedMatrix[posRow][posCol] = 1 if int(col) == 0 else 0
     elif mask == 3:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
                 if (posRow + posCol)%3 == 0 and reservedPositions[posRow][posCol] == 0:
-                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+                    maskedMatrix[posRow][posCol] = 1 if int(col) == 0 else 0
     elif mask == 4:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
                 if (posRow//2 + posCol//3)%2 == 0 and reservedPositions[posRow][posCol] == 0:
-                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+                    maskedMatrix[posRow][posCol] = 1 if int(col) == 0 else 0
     elif mask == 5:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
                 if (posRow*posCol)%2 + (posRow*posCol)%3 == 0 and reservedPositions[posRow][posCol] == 0:
-                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+                    maskedMatrix[posRow][posCol] = 1 if int(col) == 0 else 0
     elif mask == 6:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
                 if ((posRow*posCol)%2 + (posRow*posCol)%3)%2 == 0 and reservedPositions[posRow][posCol] == 0:
-                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+                    maskedMatrix[posRow][posCol] = 1 if int(col) == 0 else 0
     elif mask == 7:
         for posRow, row in enumerate(moduleMatrix):
             for posCol, col in enumerate(row):
                 if ((posRow + posCol)%2 + (posRow*posCol)%3)%2 == 0 and reservedPositions[posRow][posCol] == 0:
-                    moduleMatrix[posRow][posCol] = 1 if col == 0 else 0
+                    maskedMatrix[posRow][posCol] = 1 if int(col) == 0 else 0
         
-    return moduleMatrix
+    return maskedMatrix
 
 def add_format_version_information(moduleMatrix: list, errCorrection: QRErrorCorrectionLevels, maskNum: int, version: QRVersion) -> list:
     #Add the format string
@@ -1078,31 +1084,52 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
         raise Exception('The data and reserved positions lists must have the same length.')
     
     #Apply all 8 masks and calculate the penalty score
-    penaltyScores = []
+    maskNum = 0
+    penaltyScores = 0
     maskedPatterns = []
 
-    for row in reservedPositions:
-        for col in row:
-            print(col, end='')
-        print()
-    print()
+    # for row in reservedPositions:
+    #     for col in row:
+    #         print(col, end='')
+    #     print()
+    # print()
 
+    originalData = deepcopy(data)
     for i in range(0, 8):
         #Add the Format String and Version String
-        print(f"Mask {i}")
-        data = add_format_version_information(data, errCorrection, i, version)
+        # print(f"Mask {i}")
+        data = add_format_version_information(originalData, errCorrection, i, version)
+        #Turn every position into int 
+        #TODO: Find a better way to do this
+        for posx,row in enumerate(data):
+            for posy,col in enumerate(row):
+                data[posx][posy] = int(col)
 
-        for row in data:
-            for col in row:
-                print(col, end='')
-            print()
-        print()
+        # for row in data:
+        #     for col in row:
+        #         print(col, end='')
+        #     print()
+        # print()
         maskedData = apply_mask(data, i, reservedPositions)
-        for row in maskedData:
-            for col in row:
-                print(col, end='')
-            print()
-        print()
+        # for row in maskedData:
+        #     for col in row:
+        #         print(col, end='')
+        #     print()
+        # print()
 
-        maskedPatterns.append(maskedData)
-        penaltyScores.append(calculate_penalty_score(maskedData))
+        score = calculate_penalty_score(maskedData)
+        if score < penaltyScores or i == 0:
+            maskNum = i
+            penaltyScores = score
+            maskedPatterns = deepcopy(maskedData)
+
+    #Choose the mask with the lowest penalty score
+    print(f"Mask {maskNum} has the lowest penalty score: {penaltyScores}")
+
+    # for row in maskedPatterns:
+    #         for col in row:
+    #             print(col, end='')
+    #         print()
+    # print()
+    
+    return maskedPatterns#, maskNum

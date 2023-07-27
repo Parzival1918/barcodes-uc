@@ -20,6 +20,12 @@ alignmentPattern = [
     [1,1,1,1,1]
 ]
 
+#White and black background colors
+class ModuleColors:
+    WHITE = '\x1b[0;37;47m'
+    BLACK = '\x1b[0;30;40m'
+    RESET = '\x1b[0m'
+
 class QR:
     def __init__(self, version: qrutils.QRVersion = qrutils.QRVersion.v1) -> None:
         self.size = qrutils.qr_size(version)
@@ -39,6 +45,32 @@ class QR:
             buildString += "\n"
 
         return buildString
+    
+    def show(self):
+        #Add quiet zone
+        for _ in range(4):
+            for _ in range(self.size + 8):
+                print(ModuleColors.WHITE + ' ' + ModuleColors.RESET, end="")
+            print()
+
+        for row in self.matrix:
+            for _ in range(4):
+                print(ModuleColors.WHITE + ' ' + ModuleColors.RESET, end="")
+
+            for col in row:
+                if col == 0:
+                    print(ModuleColors.WHITE + ' ' + ModuleColors.RESET, end="")
+                else:
+                    print(ModuleColors.BLACK + ' ' + ModuleColors.RESET, end="")
+
+            for _ in range(4):
+                print(ModuleColors.WHITE + ' ' + ModuleColors.RESET, end="")
+            print()
+    
+        for _ in range(4):
+            for _ in range(self.size + 8):
+                print(ModuleColors.WHITE + ' ' + ModuleColors.RESET, end="")
+            print()
 
 class QRGenerator:
     def __init__(self, msg: str = "Hello World", encoding: qrutils.QREncoding = qrutils.QREncoding.byte, version: qrutils.QRVersion = qrutils.QRVersion.v1, error_correction: qrutils.QRErrorCorrectionLevels = qrutils.QRErrorCorrectionLevels.L):
@@ -166,7 +198,7 @@ class QRGenerator:
         #Copy reserved positions to reserved_positions
         for posx,row in enumerate(qr.matrix):
             for posy,col in enumerate(row):
-                if col == 'x' or col == 1 or col == 0:
+                if col != 'X':
                     qr.reserved_positions[posx][posy] = 1
         # print(qr.reserved_positions)
 
@@ -223,10 +255,15 @@ class QRGenerator:
                 
         #9 - Masking
         # qr.matrix = qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
-        qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
+        qr.matrix = qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
+        #Turn every position into int 
+        #TODO: Find a better way to do this
+        for posx,row in enumerate(qr.matrix):
+            for posy,col in enumerate(row):
+                qr.matrix[posx][posy] = int(col)
 
-        print(qr)
-        print(dataPos, len(interleavedData), (len(interleavedData)-dataPos))
+        # print(qr)
+        # print(dataPos, len(interleavedData), (len(interleavedData)-dataPos))
 
         return qr
 
