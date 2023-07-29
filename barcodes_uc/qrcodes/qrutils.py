@@ -950,26 +950,47 @@ def alignment_pattern_locations(version: QRVersion) -> list:
 def calculate_penalty_score(moduleMatrix: list) -> int:
     #Eval condition 1. 5 or more consecutive modules in a row/column with the same color
     #Horizontal
+    # for row in moduleMatrix:
+    #     for col in row:
+    #         print(col, end='')
+    #     print()
+    # print()
+
     cond1Penalty = 0
-    for row in moduleMatrix:
-        for i in range(0, len(row)-4):
-            if row[i] == row[i+1] == row[i+2] == row[i+3] == row[i+4]:
-                cond1Penalty += 3
-                extraPos = i+5
-                while extraPos < len(row)-4 and row[i] == row[extraPos]:
-                    cond1Penalty += 1
-                    extraPos += 1
+    searching = moduleMatrix[0][0]
+    count = 0
+    for posR,row in enumerate(moduleMatrix):
+        for posC,col in enumerate(row):
+            if col == searching:
+                count += 1
+            else:
+                if count >= 5:
+                    # print(f"Row {posR} - Col {posC}: {count}, {3 + count - 5}")
+                    cond1Penalty += 3 + count - 5
+                count = 1
+                searching = col
+        if count >= 5:
+            # print(f"Row {posR} - Col {posC}: {count}, {3 + count - 5}")
+            cond1Penalty += 3 + count - 5
+        count = 0
             
     #Vertical
-    # for i in range(0, len(moduleMatrix)-4):
-    #     for j in range(0, len(moduleMatrix[i])):
-    #         if moduleMatrix[i][j] == moduleMatrix[i+1][j] == moduleMatrix[i+2][j] == moduleMatrix[i+3][j] == moduleMatrix[i+4][j]:
-    #             cond1Penalty += 3
-    #             extraPos = i+5
-    #             while extraPos < len(moduleMatrix)-4 and moduleMatrix[i][j] == moduleMatrix[extraPos][j]:
-    #                 cond1Penalty += 1
-    #                 extraPos += 1
-    # print(f"Condition 1: {cond1Penalty}")
+    searching = moduleMatrix[0][0]
+    count = 0
+    for posC in range(0, len(moduleMatrix[0])):
+        for posR in range(0, len(moduleMatrix)):
+            if moduleMatrix[posR][posC] == searching:
+                count += 1
+            else:
+                if count >= 5:
+                    # print(f"Row {posR} - Col {posC}: {count}, {3 + count - 5}")
+                    cond1Penalty += 3 + count - 5
+                count = 1
+                searching = moduleMatrix[posR][posC]
+        if count >= 5:
+            # print(f"Row {posR} - Col {posC}: {count}, {3 + count - 5}")
+            cond1Penalty += 3 + count - 5
+        count = 0
 
     return cond1Penalty
 
