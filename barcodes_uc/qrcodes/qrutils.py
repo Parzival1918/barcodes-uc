@@ -992,7 +992,10 @@ def calculate_penalty_score(moduleMatrix: list) -> int:
             cond1Penalty += 3 + count - 5
         count = 0
 
-    return cond1Penalty
+    #Eval condition 2. 2x2 blocks of the same color
+    cond2Penalty = 0
+
+    return cond1Penalty + cond2Penalty
 
 
 def apply_mask(moduleMatrix: list, mask: int, reservedPositions: list) -> list:
@@ -1100,7 +1103,7 @@ def add_format_version_information(moduleMatrix: list, errCorrection: QRErrorCor
     return moduleMatrix
 
 #Function to do the qr masking
-def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrectionLevels, version: QRVersion) -> list:
+def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrectionLevels, version: QRVersion, masks: list[int] = list(range(0,8))) -> list:
     if len(data) != len(reservedPositions):
         raise Exception('The data and reserved positions lists must have the same length.')
     
@@ -1116,10 +1119,10 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
     # print()
 
     originalData = deepcopy(data)
-    for i in range(0, 8):
+    for i in range(len(masks)):
         #Add the Format String and Version String
         # print(f"Mask {i}")
-        data = add_format_version_information(originalData, errCorrection, i, version)
+        data = add_format_version_information(originalData, errCorrection, masks[i], version)
         #Turn every position into int 
         #TODO: Find a better way to do this
         for posx,row in enumerate(data):
@@ -1131,7 +1134,7 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
         #         print(col, end='')
         #     print()
         # print()
-        maskedData = apply_mask(data, i, reservedPositions)
+        maskedData = apply_mask(data, masks[i], reservedPositions)
         # for row in maskedData:
         #     for col in row:
         #         print(col, end='')
@@ -1140,7 +1143,7 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
 
         score = calculate_penalty_score(maskedData)
         if score < penaltyScores or i == 0:
-            maskNum = i
+            maskNum = masks[i]
             penaltyScores = score
             maskedPatterns = deepcopy(maskedData)
 

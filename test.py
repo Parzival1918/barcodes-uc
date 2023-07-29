@@ -9,3 +9,8 @@ generator = qrgenerator.QRGenerator(msg="HELLO WORLD", encoding=qrutils.QREncodi
 
 qr = generator.generate()
 qr.show()
+
+generator = qrgenerator.QRGenerator(msg="HELLO WORLD", encoding=qrutils.QREncoding.alphanumeric, version=qrutils.QRVersion.v2, error_correction=qrutils.QRErrorCorrectionLevels.H)
+
+qr = generator.generate()
+qr.show()

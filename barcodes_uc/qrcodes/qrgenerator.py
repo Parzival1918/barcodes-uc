@@ -254,13 +254,17 @@ class QRGenerator:
                 break
                 
         #9 - Masking
-        # qr.matrix = qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
         qr.matrix = qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
-        #Turn every position into int 
-        #TODO: Find a better way to do this
-        for posx,row in enumerate(qr.matrix):
-            for posy,col in enumerate(row):
-                qr.matrix[posx][posy] = int(col)
+        # originalMatrix = qr.matrix
+        # for i in range(8):
+        #     qr.matrix = qrutils.qr_masking(originalMatrix, qr.reserved_positions, self.error_correction, self.version, [i])
+        #     #Turn every position into int 
+        #     #TODO: Find a better way to do this
+        #     for posx,row in enumerate(qr.matrix):
+        #         for posy,col in enumerate(row):
+        #             qr.matrix[posx][posy] = int(col)
+            
+        #     qr.show()
 
         # print(qr)
         # print(dataPos, len(interleavedData), (len(interleavedData)-dataPos))
