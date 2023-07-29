@@ -994,8 +994,61 @@ def calculate_penalty_score(moduleMatrix: list) -> int:
 
     #Eval condition 2. 2x2 blocks of the same color
     cond2Penalty = 0
+    for posR in range(0, len(moduleMatrix)-1):
+        for posC in range(0, len(moduleMatrix[0])-1):
+            if moduleMatrix[posR][posC] == moduleMatrix[posR][posC+1] == moduleMatrix[posR+1][posC] == moduleMatrix[posR+1][posC+1]:
+                cond2Penalty += 3
 
-    return cond1Penalty + cond2Penalty
+    #Eval condition 3. Finder pattern
+    cond3Penalty = 0
+    pattern = [[1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0],[0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1]]
+    #Horizontal
+    for posR in range(0, len(moduleMatrix)):
+        for posC in range(0, len(moduleMatrix[0])-10):
+            if moduleMatrix[posR][posC:posC+11] in pattern:
+                cond3Penalty += 40
+
+    #Vertical
+    for posC in range(0, len(moduleMatrix[0])):
+        for posR in range(0, len(moduleMatrix)-10):
+            if [moduleMatrix[posR][posC], moduleMatrix[posR+1][posC], moduleMatrix[posR+2][posC], 
+                moduleMatrix[posR+3][posC], moduleMatrix[posR+4][posC], moduleMatrix[posR+5][posC], 
+                moduleMatrix[posR+6][posC], moduleMatrix[posR+7][posC], moduleMatrix[posR+8][posC], 
+                moduleMatrix[posR+9][posC], moduleMatrix[posR+10][posC]] in pattern:
+                cond3Penalty += 40
+
+    #Eval condition 4. Dark modules
+    cond4Penalty = 0
+    darkModules = 0
+    whiteModules = 0
+    for row in moduleMatrix:
+        for col in row:
+            if col == 1:
+                darkModules += 1
+            else:
+                whiteModules += 1
+
+    percentage = int(darkModules/(darkModules+whiteModules)*100)
+    #Find the closest multiples of 5
+    top = percentage + (5 - percentage%5)
+    bottom = percentage - percentage%5
+    # print(f"Percentage: {percentage}, Top: {top}, Bottom: {bottom}")
+    #Substract 50 and absolute value
+    top = abs(top - 50)
+    bottom = abs(bottom - 50)
+    # print(f"Top: {top}, Bottom: {bottom}")
+    #Divide by 5
+    top = top//5
+    bottom = bottom//5
+    # print(f"Top: {top}, Bottom: {bottom}")
+    #Multiply by 10 the smallest
+    if top < bottom:
+        cond4Penalty = top*10
+    else:
+        cond4Penalty = bottom*10
+
+    # print(f"Penalty score - 1: {cond1Penalty}, 2: {cond2Penalty}, 3: {cond3Penalty}, 4: {cond4Penalty}")
+    return cond1Penalty + cond2Penalty + cond3Penalty + cond4Penalty
 
 
 def apply_mask(moduleMatrix: list, mask: int, reservedPositions: list) -> list:
