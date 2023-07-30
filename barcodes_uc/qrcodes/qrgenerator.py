@@ -1,6 +1,8 @@
 
 #imports
 from . import qrutils
+from PIL import Image
+import numpy as np
 
 finderPattern = [
     [1,1,1,1,1,1,1],
@@ -71,6 +73,20 @@ class QR:
             for _ in range(self.size + 8):
                 print(ModuleColors.WHITE + ' ' + ModuleColors.RESET, end="")
             print()
+
+    #Function to save the QR code as a png image
+    def save(self, filename: str = "qr.png", imgSize: int = 300):
+        #Add quiet zone
+        img_pixels = [[1 for _ in range(self.size + 8)] for _ in range(self.size + 8)]
+        for i in range(self.size):
+            for j in range(self.size):
+                img_pixels[i+4][j+4] = 0 if self.matrix[i][j] == 1 else 1
+
+        pixels = np.array(img_pixels, dtype=np.uint8)*255
+
+        image = Image.fromarray(pixels)
+        image = image.resize((imgSize, imgSize), Image.NEAREST)
+        image.save(filename)
 
 class QRGenerator:
     def __init__(self, msg: str = "Hello World", encoding: qrutils.QREncoding = qrutils.QREncoding.byte, version: qrutils.QRVersion = qrutils.QRVersion.v1, error_correction: qrutils.QRErrorCorrectionLevels = qrutils.QRErrorCorrectionLevels.L):
