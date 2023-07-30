@@ -8,7 +8,7 @@ from pathlib import Path
 from enum import Enum
 import numpy as np
 import pandas as pd
-from copy import deepcopy, copy
+from copy import deepcopy
 
 FILE_PATH = Path(__file__).parent / "../../data"
 
@@ -124,7 +124,7 @@ class QREncoding(Enum):
     kanji = '1000'
 
 #Enum class for qr version
-class QRVersion:
+class QRVersion(Enum):
     v1 = 1
     v2 = 2
     v3 = 3
@@ -224,11 +224,11 @@ class QRErrorCorrectionLevels:
 
 #Function that calculates the size of the qr code
 def qr_size(version: QRVersion) -> int:
-    return 4 * (version - 1) + 21
+    return 4 * (version.value - 1) + 21
 
 #Function that returns the character count indicator size for the qr code
 def qr_count_indicator_size(version: QRVersion, encoding: QREncoding) -> int:
-    if version <= 9:
+    if version.value <= 9:
         if encoding == QREncoding.numeric:
             return 10
         elif encoding == QREncoding.alphanumeric:
@@ -239,7 +239,7 @@ def qr_count_indicator_size(version: QRVersion, encoding: QREncoding) -> int:
             return 8
         else:
             return 0
-    elif version <= 26:
+    elif version.value <= 26:
         if encoding == QREncoding.numeric:
             return 12
         elif encoding == QREncoding.alphanumeric:
@@ -250,7 +250,7 @@ def qr_count_indicator_size(version: QRVersion, encoding: QREncoding) -> int:
             return 10
         else:
             return 0
-    elif version <= 40:
+    elif version.value <= 40:
         if encoding == QREncoding.numeric:
             return 14
         elif encoding == QREncoding.alphanumeric:
@@ -341,7 +341,7 @@ def multiply_polynomials(poly1Vals: list, poly1Exponents: list, poly2Vals: list,
 
 #Function to generate the generator polynomial
 def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels) -> list:
-    n = ERR_CORR_CODEWORDS_BLOCK[version][correction]
+    n = ERR_CORR_CODEWORDS_BLOCK[version.value][correction]
     prevResult = [1, 1]  # Start with x + 1
     for N in range(1, n):
         termGF = [N, 0]  # Multiply previous term by (x - 2^N)
@@ -410,18 +410,18 @@ def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels
 
 #Function that returns number of remainder bits
 def remainder_bits(version: QRVersion) -> int:
-    if version > 1:
-        if version <= 6:
+    if version.value > 1:
+        if version.value <= 6:
             return 7
-        elif version <= 13:
+        elif version.value <= 13:
             return 0
-        elif version <= 20:
+        elif version.value <= 20:
             return 3
-        elif version <= 27:
+        elif version.value <= 27:
             return 4
-        elif version <= 34:
+        elif version.value <= 34:
             return 3
-        elif version <= 40:
+        elif version.value <= 40:
             return 0
 
 def interleave_blocks(dataBlocks: list, errorCorrectionBlocks: list, version: QRVersion) -> list:
@@ -467,7 +467,7 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
         exponentsMessage = list(range(0, len(messageDataBlock)))
         exponentsGenerator = list(range(0, len(generator)))
 
-        errCorrCodewords = ERR_CORR_CODEWORDS_BLOCK[version][correction]
+        errCorrCodewords = ERR_CORR_CODEWORDS_BLOCK[version.value][correction]
         leadingExponentMessage = len(messageDataBlock) - 1
 
         # print(f"Message: {messageDataBlock}\nExponents: {exponentsMessage}")
@@ -531,7 +531,7 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
 
     return divisions
     
-def qr_encode_data_numeric(version: QRVersion, data: str) -> dict:
+def qr_encode_data_numeric(version: QRVersion, data: str) -> dict: #TODO: Finish the numeric encoding
     blocks = {
         'Mode': '',
         'CharacterCount': '',
@@ -610,7 +610,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
         totalLength += len(formatted)
         totalBits += formatted
 
-    dataBits = DATA_CODEWORDS[version][correction]*8
+    dataBits = DATA_CODEWORDS[version.value][correction]*8
     remainderLength = dataBits - totalLength
     # print(remainderLength)
     # print(dataBits)
@@ -650,7 +650,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
 
     blocks['TotalLength'] = totalLength
 
-    blockInfo = GROUPS[version][correction]
+    blockInfo = GROUPS[version.value][correction]
     g1Blocks = blockInfo['GroupOne']['Blocks']
     g1CodewordsPerBlock = blockInfo['GroupOne']['CodewordsPerBlock']
     g2Blocks = blockInfo['GroupTwo']['Blocks']
@@ -789,7 +789,7 @@ def qr_encode_data_byte(version: QRVersion, correction: QRErrorCorrectionLevels,
         totalLength += len(formatted)
         totalBits += formatted
 
-    dataBits = DATA_CODEWORDS[version][correction]*8
+    dataBits = DATA_CODEWORDS[version.value][correction]*8
     remainderLength = dataBits - totalLength
     # print(remainderLength)
     # print(dataBits)
@@ -829,7 +829,7 @@ def qr_encode_data_byte(version: QRVersion, correction: QRErrorCorrectionLevels,
 
     blocks['TotalLength'] = totalLength
 
-    blockInfo = GROUPS[version][correction]
+    blockInfo = GROUPS[version.value][correction]
     g1Blocks = blockInfo['GroupOne']['Blocks']
     g1CodewordsPerBlock = blockInfo['GroupOne']['CodewordsPerBlock']
     g2Blocks = blockInfo['GroupTwo']['Blocks']
@@ -915,7 +915,7 @@ def qr_encode_data_byte(version: QRVersion, correction: QRErrorCorrectionLevels,
     
 #Function that encodes the data in the qr code and returns every block of data
 def qr_encode_data(version: QRVersion, encoding: QREncoding, correction: QRErrorCorrectionLevels, data: str) -> list:
-    max_character_count = MAX_CHARACTERS[QREncoding(encoding).name][correction][version]
+    max_character_count = MAX_CHARACTERS[QREncoding(encoding).name][correction][version.value]
 
     if len(data) >= max_character_count:
         raise Exception('The data is too long for the version and error correction level chosen.')
@@ -930,8 +930,8 @@ def qr_encode_data(version: QRVersion, encoding: QREncoding, correction: QRError
         return None
 
 def alignment_pattern_locations(version: QRVersion) -> list:
-    if version != 1:
-        positions = ALIGNMENT_PATTERNS[version]
+    if version.value != 1:
+        positions = ALIGNMENT_PATTERNS[version.value]
     else:
         positions = []
 
@@ -1132,8 +1132,8 @@ def add_format_version_information(moduleMatrix: list, errCorrection: QRErrorCor
             moduleMatrix[7][8] = int(formatString[i+8])
 
     #Add the version string
-    if version >= 7:
-        versionString = VERSION_INFORMATION[version]
+    if version.value >= 7:
+        versionString = VERSION_INFORMATION[version.value]
         # print(len(versionString), versionString)
         pos = 0
         for i in range(0, 6):
@@ -1201,7 +1201,7 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
             maskedPatterns = deepcopy(maskedData)
 
     #Choose the mask with the lowest penalty score
-    print(f"Mask {maskNum} has the lowest penalty score: {penaltyScores}")
+    # print(f"Mask {maskNum} has the lowest penalty score: {penaltyScores}")
 
     # for row in maskedPatterns:
     #         for col in row:

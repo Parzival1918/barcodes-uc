@@ -189,7 +189,7 @@ class QRGenerator:
             qr.matrix[qr.size - i][8] = 'x'
 
         #7 - Reserve version information area
-        if self.version >= qrutils.QRVersion.v7:
+        if self.version.value >= qrutils.QRVersion.v7.value:
             for i in range(6):
                 for j in range(3):
                     qr.matrix[i][qr.size - 11 + j] = 'x'
@@ -271,6 +271,15 @@ class QRGenerator:
 
         return qr
 
+#Function that returns the minimum QR version needed to encode the message
+def get_min_version(msg: str, encoding: qrutils.QREncoding = qrutils.QREncoding.byte, error_correction: qrutils.QRErrorCorrectionLevels = qrutils.QRErrorCorrectionLevels.Q):
+    min_version = None
+    #assign max value to minlength
+    minlength = 9999999
+    for version in qrutils.QRVersion:
+        if len(msg) < qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction][version.value] and qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction][version.value] < minlength:
+            min_version = version
+            minlength = qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction][version.value]
 
-
+    return min_version, error_correction
             

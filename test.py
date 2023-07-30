@@ -14,3 +14,10 @@ generator = qrgenerator.QRGenerator(msg="HELLO WORLD", encoding=qrutils.QREncodi
 
 qr = generator.generate()
 qr.show()
+
+msg = "I AM PEDRO"
+version, err = qrgenerator.get_min_version(msg, qrutils.QREncoding.alphanumeric, qrutils.QRErrorCorrectionLevels.Q)
+print(version, err)
+qr = qrgenerator.QRGenerator(msg=msg, encoding=qrutils.QREncoding.alphanumeric, version=version, error_correction=err)
+ans = qr.generate()
+ans.show()
