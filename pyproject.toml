@@ -1,14 +1,19 @@
 [tool.poetry]
 name = "barcodes-uc"
-version = "0.1.0"
-description = ""
+version = "0.3.0"
+description = "A library to generate barcodes"
 authors = ["Pedro Juan Royo <pedro.juan.royo@gmail.com>"]
 readme = "README.md"
 packages = [{include = "barcodes_uc"}]
+include = [
+    {path = "data"},
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-
+numpy = "^1.25.1"
+pandas = "^2.0.3"
+pillow = "^10.0.0"
 
 [build-system]
 requires = ["poetry-core"]
