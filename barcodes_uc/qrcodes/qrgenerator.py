@@ -3,6 +3,7 @@
 from . import qrutils
 from PIL import Image
 import numpy as np
+from enum import Enum
 
 finderPattern = [
     [1,1,1,1,1,1,1],
@@ -27,6 +28,17 @@ class ModuleColors:
     WHITE = '\x1b[0;37;47m'
     BLACK = '\x1b[0;30;40m'
     RESET = '\x1b[0m'
+
+#Colour class to save qr code as an image with colour
+class QRColour(Enum):
+    black = [0, 0, 0]
+    red = [1, 0, 0]
+    green = [0, 1, 0]
+    blue = [0, 0, 1]
+    yellow = [1, 1, 0]
+    cyan = [0, 1, 1]
+    magenta = [1, 0, 1]
+    white = [1, 1, 1]
 
 class QR:
     def __init__(self, version: qrutils.QRVersion = qrutils.QRVersion.v1) -> None:
@@ -75,16 +87,56 @@ class QR:
             print()
 
     #Function to save the QR code as a png image
-    def save(self, filename: str = "qr.png", imgSize: int = 300):
+    def save(self, filename: str = "qr.png", imgSize: int = 300, quietZone: bool = True, quietZoneSize: int = 4, 
+    colour: list[QRColour] = [QRColour.black], bckgrndColour: QRColour = QRColour.white):
         #Add quiet zone
-        img_pixels = [[1 for _ in range(self.size + 8)] for _ in range(self.size + 8)]
-        for i in range(self.size):
-            for j in range(self.size):
-                img_pixels[i+4][j+4] = 0 if self.matrix[i][j] == 1 else 1
+        if quietZone:
+            img_pixels = [[[1 for _ in range(3)] for _ in range(self.size + quietZoneSize*2)] for _ in range(self.size + quietZoneSize*2)]
+            # print(len(img_pixels), len(img_pixels[0]), len(img_pixels[0][0]))
+            for i in range(self.size):
+                for j in range(self.size):
+                    for k in range(3):
+                        img_pixels[i+quietZoneSize][j+quietZoneSize][k] = 0 if self.matrix[i][j] == 1 else 1
+        else:
+            img_pixels = [[[1 for _ in range(3)] for _ in range(self.size + quietZoneSize*2)] for _ in range(self.size + quietZoneSize*2)]
+            for i in range(self.size):
+                for j in range(self.size):
+                    for k in range(3):
+                        img_pixels[i+quietZoneSize][j+quietZoneSize][k] = 0 if self.matrix[i][j] == 1 else 1
 
+        #Add colour
+        if len(colour) == 1:
+            # img_pixels = np.array(img_pixels, dtype=np.uint8)*colour[0].value
+            for i in range(len(img_pixels)):
+                for j in range(len(img_pixels[0])):
+                    if img_pixels[i][j][0] == 0 and img_pixels[i][j][1] == 0 and img_pixels[i][j][2] == 0: #If black
+                        img_pixels[i][j][0] = colour[0].value[0]
+                        img_pixels[i][j][1] = colour[0].value[1]
+                        img_pixels[i][j][2] = colour[0].value[2]
+        else:
+            for i in range(len(img_pixels)):
+                for j in range(len(img_pixels[0])):
+                    if img_pixels[i][j][0] == 0 and img_pixels[i][j][1] == 0 and img_pixels[i][j][2] == 0: #If black
+                        #randomly choose a colour
+                        c = np.random.choice(colour)
+                        img_pixels[i][j][0] = c.value[0]
+                        img_pixels[i][j][1] = c.value[1]
+                        img_pixels[i][j][2] = c.value[2]
+        # print(len(img_pixels), len(img_pixels[0]), len(img_pixels[0][0]))
+        # print(img_pixels)
+
+        #Add background colour
+        for i in range(len(img_pixels)):
+            for j in range(len(img_pixels[0])):
+                if img_pixels[i][j][0] == 1 and img_pixels[i][j][1] == 1 and img_pixels[i][j][2] == 1:
+                    img_pixels[i][j][0] = bckgrndColour.value[0]
+                    img_pixels[i][j][1] = bckgrndColour.value[1]
+                    img_pixels[i][j][2] = bckgrndColour.value[2]
+        
         pixels = np.array(img_pixels, dtype=np.uint8)*255
+        # pixels = img_pixels*255
 
-        image = Image.fromarray(pixels)
+        image = Image.fromarray(pixels, 'RGB')
         image = image.resize((imgSize, imgSize), Image.NEAREST)
         image.save(filename)
 
