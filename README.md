@@ -38,6 +38,8 @@ qr.save("qr.png", imgSize = 1000, colour=[qrgenerator.QRColour.red]) # Save the 
 
 ## Future work
 
-[ ] Add byte and numeric encoding to qr codes.
-[ ] Save qr code as image in different styles.
-[ ] Generate barcodes.
+- [ ] Add byte and numeric encoding to qr codes.
+
+- [ ] Save qr code as image in different styles.
+
+- [ ] Generate barcodes.

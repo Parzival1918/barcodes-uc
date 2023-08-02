@@ -14,6 +14,9 @@ numpy = "^1.25.1"
 pandas = "^2.0.3"
 pillow = "^10.0.0"
 
+[tool.poetry.scripts]
+barcodes-uc = "barcodes_uc.qrcodes.__main__:main"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
