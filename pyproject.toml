@@ -15,7 +15,7 @@ pandas = "^2.0.3"
 pillow = "^10.0.0"
 
 [tool.poetry.scripts]
-barcodes-uc = "barcodes_uc.qrcodes.__main__:main"
+qrcode = "barcodes_uc.qrcodes.__main__:main"
 
 [build-system]
 requires = ["poetry-core"]
