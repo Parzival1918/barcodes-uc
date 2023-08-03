@@ -339,6 +339,10 @@ class QRGenerator:
 
         return qr
 
+#Function to get the correct encoding for the message
+def get_encoding(msg: str):
+    pass
+
 #Function that returns the minimum QR version needed to encode the message
 def get_min_version(msg: str, encoding: qrutils.QREncoding = qrutils.QREncoding.byte, error_correction: qrutils.QRErrorCorrectionLevels = qrutils.QRErrorCorrectionLevels.Q):
     min_version = None

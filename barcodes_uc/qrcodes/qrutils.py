@@ -531,33 +531,50 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
 
     return divisions
     
-def qr_encode_data_numeric(version: QRVersion, data: str) -> dict: #TODO: Finish the numeric encoding
+def qr_encode_data_numeric(version: QRVersion, correction: QRErrorCorrectionLevels, data: str) -> dict: #TODO: Finish the numeric encoding
     blocks = {
         'Mode': '',
         'CharacterCount': '',
-        'Data': []
+        'Data': [],
+        'ExtraPadding': {
+            'TerminatorZeros': '',
+            'MultipleOf8': '',
+            'PadBytes': [],
+        },
+        'TotalLength': 0,
+        'dataBytes': [],
+        'ErrorCorrection': [],
     }
+    totalLength = 0
+    totalBits = ''
+
     count_indicator = qr_count_indicator(version, QREncoding.numeric, data)
 
     blocks['Mode'] = QREncoding.numeric
     blocks['CharacterCount'] = count_indicator
+    totalLength += len(count_indicator)
+    totalLength += len(QREncoding.alphanumeric.value)
+    totalBits += QREncoding.numeric.value
+    totalBits += count_indicator
 
     # print(len(data))
     for i in range(0, len(data), 3):
         if i + 3 <= len(data):
             number = int(data[i:i+3])
-            # print(number)
+            
             if number > 99:
                 formatted = '{0:010b}'.format(number)
             elif number > 9:
                 formatted = '{0:07b}'.format(number)
             else:
                 formatted = '{0:04b}'.format(number)
+
+            # print(number, formatted)
 
             blocks['Data'].append(formatted)
         else:
             number = int(data[i:])
-            # print(number)
+
             if number > 99:
                 formatted = '{0:010b}'.format(number)
             elif number > 9:
@@ -565,7 +582,141 @@ def qr_encode_data_numeric(version: QRVersion, data: str) -> dict: #TODO: Finish
             else:
                 formatted = '{0:04b}'.format(number)
 
+            # print(number, formatted)
+
             blocks['Data'].append(formatted)
+
+        totalLength += len(formatted)
+        totalBits += formatted
+
+    dataBits = DATA_CODEWORDS[version.value][correction]*8
+    remainderLength = dataBits - totalLength
+    # print(remainderLength)
+    # print(dataBits)
+
+    #Extra padding
+
+    #Terminator zeros (4 bits max)
+    if remainderLength >= 4:
+        blocks['ExtraPadding']['TerminatorZeros'] = '0'*4
+        remainderLength -= 4
+        totalLength += 4
+        totalBits += '0'*4
+    else:
+        blocks['ExtraPadding']['TerminatorZeros'] = '0'*remainderLength
+        remainderLength = 0
+        totalLength += remainderLength
+        totalBits += '0'*remainderLength
+
+    #Add 0 until the length is a multiple of 8
+    if remainderLength != 0 and remainderLength%8 != 0:
+        blocks['ExtraPadding']['MultipleOf8'] = '0'*(remainderLength%8)
+        totalBits += '0'*(remainderLength%8)
+
+        totalLength += remainderLength%8
+        remainderLength -= remainderLength%8
+
+    #Padding bytes (8 bits per byte)
+    if remainderLength != 8:
+        padBytePos = 0
+        while remainderLength >= 8:
+            blocks['ExtraPadding']['PadBytes'].append(PAD_BYTES[padBytePos%2])
+            remainderLength -= 8
+            totalLength += 8
+            totalBits += PAD_BYTES[padBytePos%2]
+            
+            padBytePos += 1
+
+    blocks['TotalLength'] = totalLength
+    # print(totalLength)
+
+    blockInfo = GROUPS[version.value][correction]
+    g1Blocks = blockInfo['GroupOne']['Blocks']
+    g1CodewordsPerBlock = blockInfo['GroupOne']['CodewordsPerBlock']
+    g2Blocks = blockInfo['GroupTwo']['Blocks']
+    g2CodewordsPerBlock = blockInfo['GroupTwo']['CodewordsPerBlock']
+
+    #Split the data in bytes
+    pos = 0
+    for i in range(0, g1Blocks):
+        codewords = []
+        for j in range(pos, pos+g1CodewordsPerBlock*8, 8):
+            codewords.append(totalBits[j:j+8])
+
+        blocks['dataBytes'].append(codewords)
+        pos += g1CodewordsPerBlock*8
+
+    if g2Blocks:
+        for i in range(0, g2Blocks):
+            codewords = []
+            for j in range(pos, pos+g2CodewordsPerBlock*8, 8):
+                codewords.append(totalBits[j:j+8])
+            
+            blocks['dataBytes'].append(codewords)
+            pos += g2CodewordsPerBlock*8
+
+    #Error correction using Reed-Solomon algorithm
+    # print(blockInfo)
+
+    singleListBytes = []
+    for i in range(0, len(totalBits), 8):
+        singleListBytes.append(totalBits[i:i+8])
+
+    #Message polynomial
+    messagePolynomial = []
+    codewordIdx = 0
+    for _ in range(0, blockInfo['GroupOne']['Blocks']):
+        blockPolynomial = []
+        for _ in range(0, blockInfo['GroupOne']['CodewordsPerBlock']):
+            codeword = singleListBytes[codewordIdx]
+            blockPolynomial.append(int(codeword, 2))
+
+            codewordIdx += 1
+
+        #Flip the block polynomial and append it to the message polynomial
+        blockPolynomial.reverse()
+        messagePolynomial.append(blockPolynomial)
+
+    # blocks['ErrorCorrection']['GroupOne'] = messagePolynomial
+    # messagePolynomial = []
+
+    if blockInfo['GroupTwo']['Blocks']:
+        for _ in range(0, blockInfo['GroupTwo']['Blocks']):
+            blockPolynomial = []
+            for _ in range(0, blockInfo['GroupTwo']['CodewordsPerBlock']):
+                codeword = singleListBytes[codewordIdx]
+                blockPolynomial.append(int(codeword, 2))
+
+                codewordIdx += 1
+
+            #Flip the block polynomial and append it to the message polynomial
+            blockPolynomial.reverse()
+            messagePolynomial.append(blockPolynomial)
+
+    # blocks['ErrorCorrection']['GroupTwo'] = messagePolynomial
+
+    # print(messagePolynomial)
+
+    #Generator polynomial
+    generatorPolynomial = generator_polynomial(version, correction)
+    # print(generatorPolynomial)
+
+    #Divide the message polynomial by the generator polynomial
+    remainder = divide_polynomials(messagePolynomial, generatorPolynomial, version, correction)
+    # print(errorCorrectionPolynomial)
+
+    #Turn remainder to list of 8 bit strings
+    for i in range(0, len(remainder)):
+        # print(len(remainder[i]))
+        for j in range(0, len(remainder[i])):
+            remainder[i][j] = '{0:08b}'.format(remainder[i][j])
+
+        #Flip the remainder
+        remainder[i].reverse()
+
+    blocks['ErrorCorrection'] = remainder
+
+    # print(blocks)
 
     return blocks
 
@@ -921,7 +1072,7 @@ def qr_encode_data(version: QRVersion, encoding: QREncoding, correction: QRError
         raise Exception('The data is too long for the version and error correction level chosen.')
 
     if encoding == QREncoding.numeric:
-        return qr_encode_data_numeric(version, data)
+        return qr_encode_data_numeric(version, correction, data)
     elif encoding == QREncoding.alphanumeric:
         return qr_encode_data_alphanumeric(version, correction, data)
     elif encoding == QREncoding.byte:

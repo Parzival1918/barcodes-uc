@@ -21,3 +21,7 @@ print(version, err)
 qr = qrgenerator.QRGenerator(msg=msg, encoding=qrutils.QREncoding.alphanumeric, version=version, error_correction=err)
 ans = qr.generate()
 ans.show()
+
+qr = qrgenerator.QRGenerator(msg="8675309", encoding=qrutils.QREncoding.numeric, version=qrutils.QRVersion.v1, error_correction=qrutils.QRErrorCorrectionLevels.Q)
+ans = qr.generate()
+ans.show()
