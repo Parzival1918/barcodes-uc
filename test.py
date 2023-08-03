@@ -25,3 +25,17 @@ ans.show()
 qr = qrgenerator.QRGenerator(msg="8675309", encoding=qrutils.QREncoding.numeric, version=qrutils.QRVersion.v1, error_correction=qrutils.QRErrorCorrectionLevels.Q)
 ans = qr.generate()
 ans.show()
+
+msg = "Ah, this a TEST! 99% of the time, it works every time."
+version, err = qrgenerator.get_min_version(msg, qrutils.QREncoding.byte, qrutils.QRErrorCorrectionLevels.Q)
+print(version, err)
+qr = qrgenerator.QRGenerator(msg=msg, encoding=qrutils.QREncoding.byte, version=version, error_correction=err)
+ans = qr.generate()
+ans.show()
+
+msg = "私はペドロです。"
+version, err = qrgenerator.get_min_version(msg, qrutils.QREncoding.kanji, qrutils.QRErrorCorrectionLevels.Q)
+print(version, err)
+qr = qrgenerator.QRGenerator(msg=msg, encoding=qrutils.QREncoding.kanji, version=version, error_correction=err)
+ans = qr.generate()
+ans.show()

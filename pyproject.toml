@@ -17,6 +17,9 @@ pillow = "^10.0.0"
 [tool.poetry.scripts]
 qrcode = "barcodes_uc.qrcodes.__main__:main"
 
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.25.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
