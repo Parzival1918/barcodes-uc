@@ -13,6 +13,7 @@ python = "^3.9"
 numpy = "^1.25.1"
 pandas = "^2.0.3"
 pillow = "^10.0.0"
+aenum = "^3.1.15"
 
 [tool.poetry.scripts]
 qrcode = "barcodes_uc.qrcodes.__main__:main"

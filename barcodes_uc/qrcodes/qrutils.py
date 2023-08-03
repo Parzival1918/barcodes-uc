@@ -1103,13 +1103,13 @@ def qr_encode_data_kanji(version: QRVersion, correction: QRErrorCorrectionLevels
         elif bs[0] >= 0xE0 and bs[0] <= 0xEB and bs[1] >= 0x40 and bs[1] <= 0xBF:
             number[0] = bs[0] - 0xC1 
             number[1] = bs[1] - 0x40
-        print(bs, number)
+        # print(bs, number)
 
         number = number[0]*0xC0 + number[1]
-        print(hex(number))
+        # print(hex(number))
 
         formatted = '{0:013b}'.format(number)
-        print(formatted)
+        # print(formatted)
 
         blocks['Data'].append(formatted)
         totalLength += len(formatted)
@@ -1537,3 +1537,17 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
     # print()
     
     return maskedPatterns#, maskNum
+
+def is_kanji(data: str) -> bool:
+    try:
+        data.encode('shift-jis')
+        return True
+    except:
+        return False
+    
+def is_byte(data: str) -> bool:
+    try:
+        data.encode('ISO-8859-1')
+        return True
+    except:
+        return False

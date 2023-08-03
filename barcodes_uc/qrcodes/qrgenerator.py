@@ -4,6 +4,7 @@ from . import qrutils
 from PIL import Image
 import numpy as np
 from enum import Enum
+# from aenum import extend_enum, Enum
 
 finderPattern = [
     [1,1,1,1,1,1,1],
@@ -29,6 +30,17 @@ class ModuleColors:
     BLACK = '\x1b[0;30;40m'
     RESET = '\x1b[0m'
 
+class NewColour:
+    def __init__(self, name, rgb: list[float]) -> None:
+        if len(rgb) != 3:
+            raise ValueError("RGB list must have 3 values")
+        for i in rgb:
+            if i < 0 or i > 1:
+                raise ValueError("RGB values must be in range [0-1]")
+        
+        self.value = rgb
+        self.name = name
+
 #Colour class to save qr code as an image with colour
 class QRColour(Enum):
     black = [0, 0, 0]
@@ -40,10 +52,23 @@ class QRColour(Enum):
     magenta = [1, 0, 1]
     white = [1, 1, 1]
 
+    @classmethod
+    def new_colour(cls, name, rgb: list[float]):
+        if len(rgb) != 3:
+            raise ValueError("RGB list must have 3 values")
+        for i in rgb:
+            if i < 0 or i > 1:
+                raise ValueError("RGB values must be in range [0-1]")
+        
+        return NewColour(name, rgb)
+
 class QR:
-    def __init__(self, version: qrutils.QRVersion = qrutils.QRVersion.v1) -> None:
+    def __init__(self, encoding: qrutils.QREncoding, message: str, error_correction: qrutils.QRErrorCorrectionLevels, version: qrutils.QRVersion = qrutils.QRVersion.v1) -> None:
         self.size = qrutils.qr_size(version)
         self.version = version
+        self.encoding = encoding
+        self.message = message
+        self.error_correction = error_correction
         self.matrix = [['X' for i in range(self.size)] for j in range(self.size)]
         self.reserved_positions = [[0 for i in range(self.size)] for j in range(self.size)]
 
@@ -173,7 +198,7 @@ class QRGenerator:
         interleavedData = ''.join(interleavedData)
 
         #Place the modules and function patterns in the matrix
-        qr = QR(version=self.version)
+        qr = QR(version=self.version, encoding=self.encoding, message=self.msg, error_correction=self.error_correction)
         # print(qr)
 
         #1 - Place the finder patterns, at (0,0), (0, qr.size - 7), (qr.size - 7, 0)
@@ -341,7 +366,18 @@ class QRGenerator:
 
 #Function to get the correct encoding for the message
 def get_encoding(msg: str):
-    pass
+    #Check if message is numeric
+    if msg.isnumeric():
+        return qrutils.QREncoding.numeric
+    #Check if message is alphanumeric
+    elif msg.isalnum():
+        return qrutils.QREncoding.alphanumeric
+    #Check if message is kanji
+    elif qrutils.is_byte(msg):
+        return qrutils.QREncoding.byte
+    elif qrutils.is_kanji(msg):
+        return qrutils.QREncoding.kanji
+
 
 #Function that returns the minimum QR version needed to encode the message
 def get_min_version(msg: str, encoding: qrutils.QREncoding = qrutils.QREncoding.byte, error_correction: qrutils.QRErrorCorrectionLevels = qrutils.QRErrorCorrectionLevels.Q):
@@ -354,4 +390,15 @@ def get_min_version(msg: str, encoding: qrutils.QREncoding = qrutils.QREncoding.
             minlength = qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction][version.value]
 
     return min_version, error_correction
+
+def smallest_qr(msg: str, error_correction: qrutils.QRErrorCorrectionLevels = qrutils.QRErrorCorrectionLevels.Q):
+    #Get the encoding
+    encoding = get_encoding(msg)
+    #Get the minimum version
+    version, err = get_min_version(msg, encoding, error_correction)
+    #Generate QR code
+    generator = QRGenerator(msg=msg, encoding=encoding, version=version, error_correction=err)
+    qr = generator.generate()
+    #Return QR code
+    return qr
             

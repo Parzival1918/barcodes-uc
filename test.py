@@ -39,3 +39,9 @@ print(version, err)
 qr = qrgenerator.QRGenerator(msg=msg, encoding=qrutils.QREncoding.kanji, version=version, error_correction=err)
 ans = qr.generate()
 ans.show()
+
+msg = "ABC test"
+# msg = "1234567890"
+qr = qrgenerator.smallest_qr(msg, qrutils.QRErrorCorrectionLevels.Q)
+print(qr.version, qr.encoding, qr.error_correction)
+qr.show()
