@@ -24,26 +24,51 @@ def main():
     parser.add_argument('-V', '--qr-version', type=int, help='QR version, 1-40')
     parser.add_argument('-E', '--qr-error-correction', help='QR error correction', choices=['L', 'M', 'Q', 'H'])
     parser.add_argument('--save', help='Save the QR code to a file', type=str)
+    parser.add_argument('--no-show', help='Do not show the QR code', action='store_true')
 
     # Execute the parse_args() method
     args = parser.parse_args()
+
+    if args.qr_version:
+        if args.qr_version < 1 or args.qr_version > 40:
+                print(TerminalColors.FAIL + 'Error: QR version must be between 1 and 40' + TerminalColors.ENDC)
+                exit(1)
     
     if args.encoding:
         encoding = qrutils.QREncoding[args.encoding]
+        print('Encoding: ' + TerminalColors.OKGREEN + f'{encoding.name}' + TerminalColors.ENDC)
     else:
         encoding = qrgenerator.get_encoding(args.message)
         print('Encoding detected: ' + TerminalColors.OKGREEN + f'{encoding.name}' + TerminalColors.ENDC)
 
-    if args.qr_version and args.qr_error_correction:
-        version = qrutils.QRVersion[args.qr_version]
-        error_correction = qrutils.QRErrorCorrectionLevels[args.qr_error_correction]
+    # print(args)
+    if args.qr_version != None:
+        # print(0)
+
+        version = qrutils.QRVersion(args.qr_version)
+        # print(version)
+
+        if args.qr_error_correction:
+            error_correction = qrutils.QRErrorCorrectionLevels[args.qr_error_correction]
+        else:
+            error_correction = qrutils.QRErrorCorrectionLevels.Q
         generator = qrgenerator.QRGenerator(args.message, encoding, version, error_correction)
+    # elif args.qr_version and args.qr_error_correction:
+    #     print(1)
+    #     version = qrutils.QRVersion[args.qr_version]
+    #     error_correction = qrutils.QRErrorCorrectionLevels[args.qr_error_correction]
+    #     generator = qrgenerator.QRGenerator(args.message, encoding, version, error_correction)
     else:
+        # print(2)
         version, error_correction = qrgenerator.get_min_version(args.message, encoding, qrutils.QRErrorCorrectionLevels.Q)
         generator = qrgenerator.QRGenerator(args.message, encoding, version, error_correction)
 
+    print(f'QR version: ' + TerminalColors.OKGREEN + f'{version.value}' + TerminalColors.ENDC)
+    print(f'QR error correction: ' + TerminalColors.OKGREEN + f'{error_correction}' + TerminalColors.ENDC)
+
     qr = generator.generate()
-    qr.show()
+    if not args.no_show:
+        qr.show()
 
     if args.save:
         qr.save(f'{args.save}.png')

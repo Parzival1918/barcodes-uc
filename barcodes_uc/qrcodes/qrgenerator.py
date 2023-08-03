@@ -77,11 +77,7 @@ class QR:
     #     self.matrix = [[0 for i in range(size)] for j in range(size)]
 
     def __str__(self): #TODO: Make this look better
-        buildString = ""
-        for row in self.matrix:
-            for col in row:
-                buildString += str(col)
-            buildString += "\n"
+        buildString = f'QR(version={self.version}, encoding={self.encoding}, error_correction={self.error_correction})\n'
 
         return buildString
     

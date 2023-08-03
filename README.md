@@ -36,9 +36,41 @@ qr.show() # Show the QR code in the terminal
 qr.save("qr.png", imgSize = 1000, colour=[qrgenerator.QRColour.red]) # Save the QR code in a file
 ```
 
+## CLI tools
+
+The package comes with CLI tools:
+
+### QR code generator
+
+```bash
+qrcode --help
+```
+
+```bash
+usage: qrcode [-h] [-e {byte,numeric,alphanumeric,kanji}] [-V QR_VERSION] [-E {L,M,Q,H}] [--save SAVE] message
+
+Create QR codes
+
+positional arguments:
+  message               Message to encode
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -e {byte,numeric,alphanumeric,kanji}, --encoding {byte,numeric,alphanumeric,kanji}
+                        Encoding of the message
+  -V QR_VERSION, --qr-version QR_VERSION
+                        QR version, 1-40
+  -E {L,M,Q,H}, --qr-error-correction {L,M,Q,H}
+                        QR error correction
+  --save SAVE           Save the QR code to a file
+
+Made by Pedro Juan Royo, @UnstrayCato
+```
+
+
 ## Future work
 
-- [ ] Add byte and numeric encoding to qr codes.
+- [x] Add byte and numeric encoding to qr codes.
 
 - [ ] Save qr code as image in different styles.
 
