@@ -366,7 +366,7 @@ def get_encoding(msg: str):
     if msg.isnumeric():
         return qrutils.QREncoding.numeric
     #Check if message is alphanumeric
-    elif msg.isalnum():
+    elif qrutils.is_alphanumeric(msg):
         return qrutils.QREncoding.alphanumeric
     #Check if message is kanji
     elif qrutils.is_byte(msg):

@@ -1551,3 +1551,10 @@ def is_byte(data: str) -> bool:
         return True
     except:
         return False
+    
+def is_alphanumeric(data: str) -> bool:
+    for char in data:
+        if char not in AlphanumericVals:
+            return False
+
+    return True
