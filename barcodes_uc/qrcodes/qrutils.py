@@ -1491,6 +1491,8 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
     maskNum = 0
     penaltyScores = 0
     maskedPatterns = []
+    allPatterns = []
+    allPenaltyScores = []
 
     # for row in reservedPositions:
     #     for col in row:
@@ -1527,6 +1529,9 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
             penaltyScores = score
             maskedPatterns = deepcopy(maskedData)
 
+        allPenaltyScores.append(score)
+        allPatterns.append(deepcopy(maskedData))
+
     #Choose the mask with the lowest penalty score
     # print(f"Mask {maskNum} has the lowest penalty score: {penaltyScores}")
 
@@ -1536,7 +1541,7 @@ def qr_masking(data: list, reservedPositions: list, errCorrection: QRErrorCorrec
     #         print()
     # print()
     
-    return maskedPatterns#, maskNum
+    return maskedPatterns, allPatterns, allPenaltyScores #, maskNum
 
 def is_kanji(data: str) -> bool:
     try:

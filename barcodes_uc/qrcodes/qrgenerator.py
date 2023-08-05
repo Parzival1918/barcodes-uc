@@ -182,7 +182,7 @@ class QRGenerator:
         else:
             return True
         
-    def generate(self):
+    def generate(self, returnALL: bool = False):
         # if not self.check():
         #     raise ValueError("Message is too long for the specified encoding, version and error correction level.")
         rawData = qrutils.qr_encode_data(self.version, self.encoding, self.error_correction, self.msg)
@@ -343,7 +343,7 @@ class QRGenerator:
                 break
                 
         #9 - Masking
-        qr.matrix = qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
+        qr.matrix, allPaterns, allPenaltyScores = qrutils.qr_masking(qr.matrix, qr.reserved_positions, self.error_correction, self.version)
         # originalMatrix = qr.matrix
         # for i in range(8):
         #     qr.matrix = qrutils.qr_masking(originalMatrix, qr.reserved_positions, self.error_correction, self.version, [i])
@@ -358,7 +358,10 @@ class QRGenerator:
         # print(qr)
         # print(dataPos, len(interleavedData), (len(interleavedData)-dataPos))
 
-        return qr
+        if returnALL:
+            return qr, allPaterns, allPenaltyScores
+        else:
+            return qr
 
 #Function to get the correct encoding for the message
 def get_encoding(msg: str):

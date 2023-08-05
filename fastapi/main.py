@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 
 # from barcodes_uc.qrcodes.qrutils import QREncoding, QRVersion, QRErrorCorrectionLevels
 from barcodes_uc.qrcodes.qrgenerator import get_encoding, get_min_version, smallest_qr, QRGenerator
@@ -55,8 +55,8 @@ def generateQRforAPI(message: str, encoding: Encoding | None, qr_version: int | 
     return qr, version, error_correction, encoding
 
 
-@app.get("/qrdata-from-message/{message}")
-def qr_from_message(message: str, encoding: Encoding | None = None, qr_version: int | None = None, qr_error_correction: ErrorCorrection | None = None):
+@app.get("/qrdata/{message}")
+def qr_data_from_message(message: str, encoding: Encoding | None = None, qr_version: int | None = None, qr_error_correction: ErrorCorrection | None = None):
     qr, version, error_correction, encoding = generateQRforAPI(message, encoding, qr_version, qr_error_correction)
 
     # Add quiet zone
@@ -73,7 +73,7 @@ def qr_from_message(message: str, encoding: Encoding | None = None, qr_version: 
         "qr": qrQuieZone
         }
 
-@app.get("/qrimg-from-message/{message}")
+@app.get("/qrimg/{message}", response_class=Response)
 def qr_img_from_message(message: str, encoding: Encoding | None = None, qr_version: int | None = None, qr_error_correction: ErrorCorrection | None = None, imgSize: int | None = None):
     qr, version, error_correction, encoding = generateQRforAPI(message, encoding, qr_version, qr_error_correction)
 
@@ -89,5 +89,32 @@ def qr_img_from_message(message: str, encoding: Encoding | None = None, qr_versi
     if not imgSize:
         imgSize = 500
     image = image.resize((imgSize, imgSize), Image.NEAREST)
+
+    # header = { # Error with int has no encode
+    #     "message": message,
+    #     "encoding": encoding.name,
+    #     "qr_version": version.value,
+    #     "qr_error_correction": error_correction,
+    #     "qr": qrQuieZone
+    #     }
     
-    return FileResponse(image.tobytes(), media_type="image/png")
+    return Response(content = image.tobytes(), media_type="image/bytestream")
+
+@app.get("/qrdata/mask/{maskNum}")
+def qr_data_from_mask(maskNum: int, message: str, encoding: Encoding | None = None, qr_version: int | None = None, qr_error_correction: ErrorCorrection | None = None):
+    qr, version, error_correction, encoding = generateQRforAPI(message, encoding, qr_version, qr_error_correction)
+
+    # Add quiet zone
+    qrQuieZone = [[0 for _ in range(qr.size + 8)] for _ in range(qr.size + 8)]
+    for i in range(qr.size):
+        for j in range(qr.size):
+            qrQuieZone[i + 4][j + 4] = qr.matrix[i][j]
+        
+    return {
+        "message": message,
+        "encoding": encoding.name,
+        "qr_version": version.value,
+        "qr_error_correction": error_correction,
+        "qr": qrQuieZone,
+        "mask": maskNum
+        }
