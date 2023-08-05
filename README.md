@@ -6,6 +6,32 @@
 
 * For now only QR codes are available. Only alphanumeric and byte encodings are available.
 
+## OpenAPI
+
+I used this package to learn how to use the fastapi package. The API that I created is available at [https://qrgeneratorapi-1-c9139268.deta.app](https://qrgeneratorapi-1-c9139268.deta.app).
+
+* Use it to generate QR codes by sending GET requests to the API.
+* For now the API can return the QR code data or the QR code image encoded in base64.
+* Example usage:
+
+  * ```python
+    import requests
+    from PIL import Image
+    import base64
+
+    url = 'https://qrgeneratorapi-1-c9139268.deta.app/qrimg/test'
+
+    #get json
+    r = requests.get(url)
+
+    jsonData = r.json() #Get the json answer from the API
+    size = jsonData["img"]["size"]
+    base64Data = jsonData["img"]["base64"]
+    imgdecoded = Image.frombytes('L', (size, size), base64.b64decode(base64Data)) #Decode the image
+
+    imgdecoded.show() #Show the image 
+    ```
+
 ## Installation
 
 ```bash
