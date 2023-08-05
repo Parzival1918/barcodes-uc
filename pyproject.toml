@@ -6,6 +6,7 @@ authors = ["Pedro Juan Royo <pedro.juan.royo@gmail.com>"]
 readme = "README.md"
 packages = [{include = "barcodes_uc"}]
 include = ["data/*","requirements.txt"]
+exclude = ["fastapi/*"]
 repository = "https://github.com/Parzival1918/barcodes-uc"
 
 [tool.poetry.dependencies]

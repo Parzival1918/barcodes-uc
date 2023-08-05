@@ -47,7 +47,7 @@ qrcode --help
 ```
 
 ```bash
-usage: qrcode [-h] [-e {byte,numeric,alphanumeric,kanji}] [-V QR_VERSION] [-E {L,M,Q,H}] [--save SAVE] message
+usage: qrcode [-h] [-e {byte,numeric,alphanumeric,kanji}] [-V QR_VERSION] [-E {L,M,Q,H}] [--save SAVE] [--no-show] message
 
 Create QR codes
 
@@ -63,10 +63,13 @@ optional arguments:
   -E {L,M,Q,H}, --qr-error-correction {L,M,Q,H}
                         QR error correction
   --save SAVE           Save the QR code to a file
-
+  --no-show             Do not show the QR code
+  
 Made by Pedro Juan Royo, @UnstrayCato
 ```
 
+The program will show the QR code in the terminal and save it to a file if the `--save` option is used.
+If **no -e, -V or -E options are used, the program will try to guess the best options for the message.**
 
 ## Future work
 
