@@ -5,6 +5,7 @@
 ⚠️ This python package is still in development. ⚠️
 
 * For now only QR codes are available. Only alphanumeric and byte encodings are available.
+* It looks like qr codes encoding a URL sometimes do not work unless you add a "/" at the end.
 
 ## OpenAPI
 
@@ -88,7 +89,7 @@ optional arguments:
                         QR version, 1-40
   -E {L,M,Q,H}, --qr-error-correction {L,M,Q,H}
                         QR error correction
-  --save SAVE           Save the QR code to a file
+  --save SAVE           Save the QR code to a .png file, do not add the file format
   --no-show             Do not show the QR code
   
 Made by Pedro Juan Royo, @UnstrayCato

@@ -175,7 +175,7 @@ class QRGenerator:
         return f"QR(msg={self.msg}, encoding={self.encoding}, version={self.version}, error_correction={self.error_correction})"
     
     def check(self):
-        max_character_count = qrutils.MAX_CHARACTERS[qrutils.QREncoding(self.encoding).name][self.error_correction][self.version]
+        max_character_count = qrutils.MAX_CHARACTERS[qrutils.QREncoding(self.encoding).name][self.error_correction.value][self.version.value]
 
         if len(self.msg) >= max_character_count:
             return False
@@ -384,9 +384,9 @@ def get_min_version(msg: str, encoding: qrutils.QREncoding = qrutils.QREncoding.
     #assign max value to minlength
     minlength = 9999999
     for version in qrutils.QRVersion:
-        if len(msg) < qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction][version.value] and qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction][version.value] < minlength:
+        if len(msg) < qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction.value][version.value] and qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction.value][version.value] < minlength:
             min_version = version
-            minlength = qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction][version.value]
+            minlength = qrutils.MAX_CHARACTERS[qrutils.QREncoding(encoding).name][error_correction.value][version.value]
 
     return min_version, error_correction
 

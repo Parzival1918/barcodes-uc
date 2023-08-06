@@ -216,7 +216,7 @@ AlphanumericVals = {
 }
 
 #Class error correction levels
-class QRErrorCorrectionLevels:
+class QRErrorCorrectionLevels(Enum):
     L = 'L' #7%
     M = 'M' #15%
     Q = 'Q' #25%
@@ -341,7 +341,7 @@ def multiply_polynomials(poly1Vals: list, poly1Exponents: list, poly2Vals: list,
 
 #Function to generate the generator polynomial
 def generator_polynomial(version: QRVersion, correction: QRErrorCorrectionLevels) -> list:
-    n = ERR_CORR_CODEWORDS_BLOCK[version.value][correction]
+    n = ERR_CORR_CODEWORDS_BLOCK[version.value][correction.value]
     prevResult = [1, 1]  # Start with x + 1
     for N in range(1, n):
         termGF = [N, 0]  # Multiply previous term by (x - 2^N)
@@ -467,7 +467,7 @@ def divide_polynomials(message: list, generator: list, version: QRVersion, corre
         exponentsMessage = list(range(0, len(messageDataBlock)))
         exponentsGenerator = list(range(0, len(generator)))
 
-        errCorrCodewords = ERR_CORR_CODEWORDS_BLOCK[version.value][correction]
+        errCorrCodewords = ERR_CORR_CODEWORDS_BLOCK[version.value][correction.value]
         leadingExponentMessage = len(messageDataBlock) - 1
 
         # print(f"Message: {messageDataBlock}\nExponents: {exponentsMessage}")
@@ -589,7 +589,7 @@ def qr_encode_data_numeric(version: QRVersion, correction: QRErrorCorrectionLeve
         totalLength += len(formatted)
         totalBits += formatted
 
-    dataBits = DATA_CODEWORDS[version.value][correction]*8
+    dataBits = DATA_CODEWORDS[version.value][correction.value]*8
     remainderLength = dataBits - totalLength
     # print(remainderLength)
     # print(dataBits)
@@ -617,7 +617,7 @@ def qr_encode_data_numeric(version: QRVersion, correction: QRErrorCorrectionLeve
         remainderLength -= remainderLength%8
 
     #Padding bytes (8 bits per byte)
-    if remainderLength != 8:
+    if remainderLength != 0:
         padBytePos = 0
         while remainderLength >= 8:
             blocks['ExtraPadding']['PadBytes'].append(PAD_BYTES[padBytePos%2])
@@ -630,7 +630,7 @@ def qr_encode_data_numeric(version: QRVersion, correction: QRErrorCorrectionLeve
     blocks['TotalLength'] = totalLength
     # print(totalLength)
 
-    blockInfo = GROUPS[version.value][correction]
+    blockInfo = GROUPS[version.value][correction.value]
     g1Blocks = blockInfo['GroupOne']['Blocks']
     g1CodewordsPerBlock = blockInfo['GroupOne']['CodewordsPerBlock']
     g2Blocks = blockInfo['GroupTwo']['Blocks']
@@ -761,7 +761,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
         totalLength += len(formatted)
         totalBits += formatted
 
-    dataBits = DATA_CODEWORDS[version.value][correction]*8
+    dataBits = DATA_CODEWORDS[version.value][correction.value]*8
     remainderLength = dataBits - totalLength
     # print(remainderLength)
     # print(dataBits)
@@ -789,7 +789,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
         remainderLength -= remainderLength%8
 
     #Padding bytes (8 bits per byte)
-    if remainderLength != 8:
+    if remainderLength != 0:
         padBytePos = 0
         while remainderLength >= 8:
             blocks['ExtraPadding']['PadBytes'].append(PAD_BYTES[padBytePos%2])
@@ -801,7 +801,7 @@ def qr_encode_data_alphanumeric(version: QRVersion, correction: QRErrorCorrectio
 
     blocks['TotalLength'] = totalLength
 
-    blockInfo = GROUPS[version.value][correction]
+    blockInfo = GROUPS[version.value][correction.value]
     g1Blocks = blockInfo['GroupOne']['Blocks']
     g1CodewordsPerBlock = blockInfo['GroupOne']['CodewordsPerBlock']
     g2Blocks = blockInfo['GroupTwo']['Blocks']
@@ -941,7 +941,8 @@ def qr_encode_data_byte(version: QRVersion, correction: QRErrorCorrectionLevels,
         totalLength += len(formatted)
         totalBits += formatted
 
-    dataBits = DATA_CODEWORDS[version.value][correction]*8
+    dataBits = DATA_CODEWORDS[version.value][correction.value]*8
+    # print(dataBits/8)
     remainderLength = dataBits - totalLength
     # print(remainderLength)
     # print(dataBits)
@@ -969,7 +970,7 @@ def qr_encode_data_byte(version: QRVersion, correction: QRErrorCorrectionLevels,
         remainderLength -= remainderLength%8
 
     #Padding bytes (8 bits per byte)
-    if remainderLength != 8:
+    if remainderLength != 0:
         padBytePos = 0
         while remainderLength >= 8:
             blocks['ExtraPadding']['PadBytes'].append(PAD_BYTES[padBytePos%2])
@@ -978,10 +979,13 @@ def qr_encode_data_byte(version: QRVersion, correction: QRErrorCorrectionLevels,
             totalBits += PAD_BYTES[padBytePos%2]
             
             padBytePos += 1
+    
+    # print(remainderLength)
 
     blocks['TotalLength'] = totalLength
 
-    blockInfo = GROUPS[version.value][correction]
+    blockInfo = GROUPS[version.value][correction.value]
+    # print(blockInfo)
     g1Blocks = blockInfo['GroupOne']['Blocks']
     g1CodewordsPerBlock = blockInfo['GroupOne']['CodewordsPerBlock']
     g2Blocks = blockInfo['GroupTwo']['Blocks']
@@ -1012,6 +1016,9 @@ def qr_encode_data_byte(version: QRVersion, correction: QRErrorCorrectionLevels,
     singleListBytes = []
     for i in range(0, len(totalBits), 8):
         singleListBytes.append(totalBits[i:i+8])
+    
+    # print(len(totalBits)/8)
+    # print(len(singleListBytes))
 
     #Message polynomial
     messagePolynomial = []
@@ -1035,6 +1042,7 @@ def qr_encode_data_byte(version: QRVersion, correction: QRErrorCorrectionLevels,
         for _ in range(0, blockInfo['GroupTwo']['Blocks']):
             blockPolynomial = []
             for _ in range(0, blockInfo['GroupTwo']['CodewordsPerBlock']):
+                # print(codewordIdx)
                 codeword = singleListBytes[codewordIdx]
                 blockPolynomial.append(int(codeword, 2))
 
@@ -1115,7 +1123,7 @@ def qr_encode_data_kanji(version: QRVersion, correction: QRErrorCorrectionLevels
         totalLength += len(formatted)
         totalBits += formatted
 
-    dataBits = DATA_CODEWORDS[version.value][correction]*8
+    dataBits = DATA_CODEWORDS[version.value][correction.value]*8
     remainderLength = dataBits - totalLength
     # print(remainderLength)
     # print(dataBits)
@@ -1143,7 +1151,7 @@ def qr_encode_data_kanji(version: QRVersion, correction: QRErrorCorrectionLevels
         remainderLength -= remainderLength%8
 
     #Padding bytes (8 bits per byte)
-    if remainderLength != 8:
+    if remainderLength != 0:
         padBytePos = 0
         while remainderLength >= 8:
             blocks['ExtraPadding']['PadBytes'].append(PAD_BYTES[padBytePos%2])
@@ -1155,7 +1163,7 @@ def qr_encode_data_kanji(version: QRVersion, correction: QRErrorCorrectionLevels
 
     blocks['TotalLength'] = totalLength
 
-    blockInfo = GROUPS[version.value][correction]
+    blockInfo = GROUPS[version.value][correction.value]
     g1Blocks = blockInfo['GroupOne']['Blocks']
     g1CodewordsPerBlock = blockInfo['GroupOne']['CodewordsPerBlock']
     g2Blocks = blockInfo['GroupTwo']['Blocks']
@@ -1242,7 +1250,7 @@ def qr_encode_data_kanji(version: QRVersion, correction: QRErrorCorrectionLevels
     
 #Function that encodes the data in the qr code and returns every block of data
 def qr_encode_data(version: QRVersion, encoding: QREncoding, correction: QRErrorCorrectionLevels, data: str) -> list:
-    max_character_count = MAX_CHARACTERS[QREncoding(encoding).name][correction][version.value]
+    max_character_count = MAX_CHARACTERS[QREncoding(encoding).name][correction.value][version.value]
 
     if len(data) >= max_character_count:
         raise Exception('The data is too long for the version and error correction level chosen.')
@@ -1437,7 +1445,7 @@ def apply_mask(moduleMatrix: list, mask: int, reservedPositions: list) -> list:
 def add_format_version_information(moduleMatrix: list, errCorrection: QRErrorCorrectionLevels, maskNum: int, version: QRVersion) -> list:
     #Add the format string
     # print(errCorrection, maskNum)
-    formatString = FORMAT_INFORMATION[errCorrection][maskNum]
+    formatString = FORMAT_INFORMATION[errCorrection.value][maskNum]
     # print(len(formatString), formatString)
 
     for i in range(0, 8):
